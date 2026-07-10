@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#1a5276">
     <meta name="description" content="Herramienta de campo para ensayos de presiómetro y densidad por reemplazo con agua.">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="manifest" href="manifest.json">
     <title data-key="pageTitle">Campo Lab</title>
     <script src="chart.js"></script>
@@ -500,6 +503,14 @@
         .timer-highlight {
             animation: timerPulse 2s ease;
         }
+        .col-highlight {
+            animation: timerPulse 2s ease;
+        }
+        .col-highlight input {
+            background: var(--accent) !important;
+            color: white !important;
+            font-weight: 700;
+        }
         @keyframes timerPulse {
             0% { background: var(--primary); color: white; transform: scale(1); }
             50% { background: var(--accent); color: white; transform: scale(1.05); }
@@ -636,7 +647,7 @@
                         <input type="text" inputmode="decimal" id="volVc" placeholder="Volumen">
                     </div>
                     <div class="form-group">
-                        <label>Pw (kPa)</label>
+                        <label>Pw (Bar)</label>
                         <input type="text" inputmode="decimal" id="pw" placeholder="Presión H.">
                     </div>
                 </div>
@@ -664,7 +675,7 @@
                         <thead>
                             <tr>
                                 <th style="width:26px">#</th>
-                                <th data-key="colPm">Pm<br><small>kPa</small></th>
+                                <th data-key="colPm">Pm<br><small>Bar</small></th>
                                 <th data-key="colP1">P1<br><small>Calib</small></th>
                                 <th id="th-15">15s</th>
                                 <th id="th-30">30s</th>
@@ -693,7 +704,7 @@
                             <thead>
                                 <tr>
                                     <th>#</th>
-                                    <th data-key="colPcorr">P Corregido<br>kPa</th>
+                                    <th data-key="colPcorr">P Corregido<br>Bar</th>
                                     <th data-key="colDeltaV">&delta;v<br>cm³</th>
                                     <th data-key="colVcorr">V Corregido<br>cm³</th>
                                     <th data-key="colCreep60">&Delta;V60-30</th>
@@ -867,7 +878,7 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const APP_VERSION = '1.1.1';
+        const APP_VERSION = '1.1.2';
         const SW_VERSION = 'campolab-v1.1.1';
 
         // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
@@ -923,9 +934,9 @@
                 stratumDesc: "Descripción del Estrato",
                 testConstants: "Constantes del Equipo",
                 dataTable: "Lecturas de Campo",
-                colPm: "Pm\nkPa",
+                colPm: "Pm\nBar",
                 colP1: "P1\nCalib",
-                colPcorr: "P Corregido\nkPa",
+                colPcorr: "P Corregido\nBar",
                 colDeltaV: "\u03b4v\ncm\u00b3",
                 colVcorr: "V Corregido\ncm\u00b3",
                 colCreep60: "\u0394V60-30",
@@ -1011,9 +1022,9 @@
                 stratumDesc: "Stratum Description",
                 testConstants: "Equipment Constants",
                 dataTable: "Field Readings",
-                colPm: "Pm\nkPa",
+                colPm: "Pm\nBar",
                 colP1: "P1\nCalib",
-                colPcorr: "Corr. P\nkPa",
+                colPcorr: "Corr. P\nBar",
                 colDeltaV: "\u03b4v\ncm\u00b3",
                 colVcorr: "Corr. V\ncm\u00b3",
                 colCreep60: "\u0394V60-30",
@@ -1214,7 +1225,7 @@
                 if (AudioContext) timerAudioCtx = new AudioContext();
             }
             if (timerAudioCtx && timerAudioCtx.state === 'suspended') {
-                timerAudioCtx.resume();
+                timerAudioCtx.resume().catch(() => {});
             }
         }
 
@@ -1230,7 +1241,7 @@
                 osc.type = 'square';
                 osc.frequency.setValueAtTime(880, now);
                 osc.frequency.setValueAtTime(698, now + 0.25);
-                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.setValueAtTime(0.4, now);
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
                 osc.start(now);
                 osc.stop(now + 0.5);
@@ -1240,27 +1251,34 @@
                 gain2.connect(timerAudioCtx.destination);
                 osc2.type = 'square';
                 osc2.frequency.setValueAtTime(880, now + 0.55);
-                gain2.gain.setValueAtTime(0.08, now + 0.55);
+                gain2.gain.setValueAtTime(0.4, now + 0.55);
                 gain2.gain.exponentialRampToValueAtTime(0.001, now + 1);
                 osc2.start(now + 0.55);
                 osc2.stop(now + 1);
             } else {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(type === '30' ? 750 : 600, now);
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(type === '30' ? 800 : 700, now);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
                 osc.start(now);
-                osc.stop(now + 0.2);
+                osc.stop(now + 0.25);
             }
         }
 
         function highlightTimerColumn(seconds) {
             const th = document.getElementById('th-' + seconds);
-            if (!th) return;
-            th.classList.remove('timer-highlight');
-            void th.offsetWidth;
-            th.classList.add('timer-highlight');
-            setTimeout(() => th.classList.remove('timer-highlight'), 2000);
+            if (th) {
+                th.classList.remove('timer-highlight');
+                void th.offsetWidth;
+                th.classList.add('timer-highlight');
+                setTimeout(() => th.classList.remove('timer-highlight'), 2000);
+            }
+            document.querySelectorAll('.col-' + seconds).forEach(td => {
+                td.classList.remove('col-highlight');
+                void td.offsetWidth;
+                td.classList.add('col-highlight');
+                setTimeout(() => td.classList.remove('col-highlight'), 2000);
+            });
         }
 
         function checkTimerAlerts(cycleMs) {
@@ -1497,9 +1515,9 @@
                 <td class="row-num">${n}</td>
                 <td class="col-pm"><input type="text" inputmode="decimal" class="inp-pm" value="${pmVal}" onchange="calcRow(this)"></td>
                 <td><input type="text" inputmode="decimal" class="inp-p1" onchange="calcRow(this)"></td>
-                <td class="col-vol"><input type="text" inputmode="decimal" class="inp-15" onchange="calcRow(this)"></td>
-                <td class="col-vol"><input type="text" inputmode="decimal" class="inp-30" onchange="calcRow(this)"></td>
-                <td class="col-vol"><input type="text" inputmode="decimal" class="inp-60" onchange="calcRow(this)"></td>
+                <td class="col-vol col-15"><input type="text" inputmode="decimal" class="inp-15" onchange="calcRow(this)"></td>
+                <td class="col-vol col-30"><input type="text" inputmode="decimal" class="inp-30" onchange="calcRow(this)"></td>
+                <td class="col-vol col-60"><input type="text" inputmode="decimal" class="inp-60" onchange="calcRow(this)"></td>
                 <td class="col-vol"><input type="text" inputmode="decimal" class="inp-180" onchange="calcRow(this)"></td>
             `;
             tbody.appendChild(tr);
@@ -1619,12 +1637,12 @@
                 projectName: 'Proyecto', testDate: 'Fecha', testTime: 'Hora', testNumber: 'Ensayo N°',
                 elevationDiff: 'Diff. Altura (m)', waterLevel: 'Nivel Freático (m)', stratumDesc: 'Descripción del Estrato',
                 constants: 'Constantes del Equipo', eta: '\u03b7 (calibración)', areaA: 'A (cm²)',
-                volVc: 'Vc (cm³)', pw: 'Pw (kPa)'
+                volVc: 'Vc (cm³)', pw: 'Pw (Bar)'
             } : {
                 projectName: 'Project', testDate: 'Date', testTime: 'Time', testNumber: 'Test No.',
                 elevationDiff: 'Height Diff. (m)', waterLevel: 'Water Table (m)', stratumDesc: 'Stratum Description',
                 constants: 'Equipment Constants', eta: '\u03b7 (calibration)', areaA: 'A (cm²)',
-                volVc: 'Vc (cm³)', pw: 'Pw (kPa)'
+                volVc: 'Vc (cm³)', pw: 'Pw (Bar)'
             };
             const generalData = [
                 [generalLabels.projectName, header.projectName],
@@ -1642,10 +1660,10 @@
                 [generalLabels.pw, constants.pw]
             ];
             const fieldData = [
-                ['#', 'Pm (kPa)', 'P1 (Calib)', '15s', '30s', '60s', '180s']
+                ['#', 'Pm (Bar)', 'P1 (Calib)', '15s', '30s', '60s', '180s']
             ];
             const calcData = [
-                ['#', 'P Corregido (kPa)', '\u03b4v (cm³)', 'V Corregido (cm³)', '\u0394V60-30', '\u0394V180-30']
+                ['#', 'P Corregido (Bar)', '\u03b4v (cm³)', 'V Corregido (cm³)', '\u0394V60-30', '\u0394V180-30']
             ];
             const pw = parseNum(constants.pw) || 0;
             const eta = parseNum(constants.eta) || 0;
@@ -1974,7 +1992,7 @@
             chart = new Chart(ctx, {
                 type: 'line',
                 data: { datasets: [{ label: 'P-V', data: pts, borderColor: '#e67e22', backgroundColor: 'rgba(230,126,34,0.08)', borderWidth: 2.5, pointBackgroundColor: '#1a5276', pointRadius: 5, pointHoverRadius: 7, tension: 0.3, fill: true }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `P: ${c.parsed.y.toFixed(2)} kPa, V: ${c.parsed.x.toFixed(1)} cm³` } } }, scales: { x: { type: 'linear', title: { display: true, text: lang==='es'?'V corregido (cm³)':'Corr. V (cm³)' }, grid: { color: 'rgba(0,0,0,0.05)' } }, y: { title: { display: true, text: lang==='es'?'P corregida (kPa)':'Corr. P (kPa)' }, grid: { color: 'rgba(0,0,0,0.05)' } } } }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `P: ${c.parsed.y.toFixed(2)} Bar, V: ${c.parsed.x.toFixed(1)} cm³` } } }, scales: { x: { type: 'linear', title: { display: true, text: lang==='es'?'V corregido (cm³)':'Corr. V (cm³)' }, grid: { color: 'rgba(0,0,0,0.05)' } }, y: { title: { display: true, text: lang==='es'?'P corregida (Bar)':'Corr. P (Bar)' }, grid: { color: 'rgba(0,0,0,0.05)' } } } }
             });
         }
 

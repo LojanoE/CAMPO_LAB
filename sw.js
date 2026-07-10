@@ -1,10 +1,13 @@
-const CACHE_NAME = 'campolab-v1.1.1';
+const CACHE_NAME = 'campolab-v1.1.2';
 const ASSETS = [
   './',
   './index.html',
   './chart.js',
   './xlsx.js',
-  './manifest.json'
+  './manifest.json',
+  './icon.svg',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 function isGoodConnection() {
