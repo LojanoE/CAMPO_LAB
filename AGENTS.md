@@ -4,15 +4,15 @@ This repository holds two independent field tools for geotechnical pressuremeter
 
 ## Repository layout
 
-- `PRESIOMETRO/index.html` — Single-file mobile web app (HTML/CSS/JS) with two modules: Presiómetro and Densidad por Reemplazo con Agua (PRA).
-- `PRESIOMETRO/sw.js` — Service Worker that caches the app and Chart.js for offline use.
-- `PRESIOMETRO/chart.js` — Local copy of Chart.js (v4.4.7) so the app does not depend on the CDN offline.
-- `PRESIOMETRO/manifest.json` — Minimal PWA manifest for `standalone` display.
+- `index.html` — Single-file mobile web app (HTML/CSS/JS) with two modules: Presiómetro and Densidad por Reemplazo con Agua (PRA).
+- `sw.js` — Service Worker that caches the app and Chart.js for offline use.
+- `chart.js` — Local copy of Chart.js (v4.4.7) so the app does not depend on the CDN offline.
+- `manifest.json` — Minimal PWA manifest for `standalone` display.
 - `PRA/13. Hoja auxiliar (PRA) V.0.xlsm` — Macro-enabled Excel workbook with sheets `PRA-1`, `PRA-2`, `PRA-3`, `PRA-3Respaldo`, `LISTAS`.
 
-## Working on the web app (`PRESIOMETRO/index.html`)
+## Working on the web app (`index.html`)
 
-- No build or install step. Serve the `PRESIOMETRO/` folder with any static file server over HTTP/HTTPS (or localhost). The Service Worker will not register when opening the file directly as `file://`.
+- No build or install step. Serve the repository root with any static file server over HTTP/HTTPS (or localhost). The Service Worker will not register when opening the file directly as `file://`.
 - The app now loads Chart.js from the local `chart.js` file, not from a CDN.
 - State is persisted only to `localStorage` under the keys `presioTests`, `praTests`, and `lang`. There is no backend or network save.
 - Multiple tests are stored per module: `presioTests` and `praTests` are arrays. The old single-key `presioData` is migrated automatically on first load and then removed.
@@ -50,8 +50,8 @@ This repository holds two independent field tools for geotechnical pressuremeter
 
 To release an update that clients will actually download:
 
-1. Edit `PRESIOMETRO/index.html` and bump `APP_VERSION` (e.g., `1.0.0` → `1.0.1`).
-2. Edit `PRESIOMETRO/sw.js` and bump `CACHE_NAME` to match (e.g., `campolab-v1.0.1`).
+1. Edit `index.html` and bump `APP_VERSION` (e.g., `1.0.0` → `1.0.1`).
+2. Edit `sw.js` and bump `CACHE_NAME` to match (e.g., `campolab-v1.0.1`).
 3. Test the app over HTTP/localhost.
 4. Commit and push; the new SW will be fetched on the next 4G/WiFi visit.
 
@@ -67,4 +67,4 @@ If you only change `index.html` but not `CACHE_NAME`, returning clients may cont
 
 - No tests, lint, or formatter are configured. Verify changes by serving the HTML over HTTP and opening it in a browser, or inspecting the workbook in Excel.
 - Keep the root clean: only add new tools as subdirectories; do not add a root build file unless the project scope changes.
-- To test the Service Worker locally, run a simple static server in the `PRESIOMETRO/` folder and open `http://localhost:PORT/`.
+- To test the Service Worker locally, run a simple static server in the repository root and open `http://localhost:PORT/`.
