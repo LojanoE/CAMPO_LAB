@@ -251,6 +251,28 @@
         .btn-success { background: var(--success); color: white; }
         .btn-danger { background: #e74c3c; color: white; }
         .btn-small { padding: 6px 10px; font-size: 0.75rem; flex: none; }
+        .btn-secondary {
+            background: var(--primary-light); color: white; border: none;
+            padding: 6px 14px; border-radius: 8px; font-size: 0.85rem;
+            cursor: pointer; margin: 4px 0;
+        }
+        .btn-secondary:active { transform: scale(0.97); }
+        .partial-row {
+            display: flex; gap: 8px; align-items: center; margin-bottom: 6px;
+        }
+        .partial-row input {
+            flex: 1;
+        }
+        .remove-btn {
+            background: #e74c3c; color: white; border: none;
+            width: 34px; height: 34px; border-radius: 8px;
+            font-size: 1.2rem; line-height: 1; cursor: pointer; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .remove-btn:active { transform: scale(0.95); }
+        .total-line {
+            font-size: 0.9rem; font-weight: 600; color: var(--primary); margin-top: 4px;
+        }
 
         /* Home cards */
         .home-cards {
@@ -789,25 +811,35 @@
             <div class="card">
                 <div class="card-title">&#128167; <span data-key="praData">Datos del Ensayo</span></div>
                 <div class="form-grid">
-                    <div class="form-group">
-                        <label data-key="praMasaAguaInicial">Masa Agua Inicial (kg)</label>
-                        <input type="text" inputmode="decimal" id="praMasaAguaInicial" onchange="calcPra()">
+                    <div class="form-group" style="grid-column:1/-1">
+                        <label data-key="praAguaInicialPartials">Agua Inicial (pesos parciales)</label>
+                        <div id="waterInicialPartials"></div>
+                        <button class="btn-secondary" onclick="addPraPartial('waterInicial')">+ <span data-key="praAddPartial">Agregar</span></button>
+                        <div class="total-line"><span data-key="praPartialTotal">Total:</span> <span id="praWaterInicialTotal">0</span> kg</div>
                     </div>
-                    <div class="form-group">
-                        <label data-key="praMasaAguaSobrante">Masa Agua Sobrante (kg)</label>
-                        <input type="text" inputmode="decimal" id="praMasaAguaSobrante" onchange="calcPra()">
+                    <div class="form-group" style="grid-column:1/-1">
+                        <label data-key="praAguaSobrantePartials">Agua Sobrante (pesos parciales)</label>
+                        <div id="waterSobrantePartials"></div>
+                        <button class="btn-secondary" onclick="addPraPartial('waterSobrante')">+ <span data-key="praAddPartial">Agregar</span></button>
+                        <div class="total-line"><span data-key="praPartialTotal">Total:</span> <span id="praWaterSobranteTotal">0</span> kg</div>
                     </div>
-                    <div class="form-group">
-                        <label data-key="praMasaAguaTotal">Masa Agua Total (kg)</label>
-                        <input type="text" inputmode="decimal" id="praMasaAguaTotal" onchange="calcPra()">
+                    <div class="form-group" style="grid-column:1/-1">
+                        <label data-key="praAguaPartials">Agua Agregada (pesos parciales)</label>
+                        <div id="waterPartials"></div>
+                        <button class="btn-secondary" onclick="addPraPartial('water')">+ <span data-key="praAddPartial">Agregar</span></button>
+                        <div class="total-line"><span data-key="praPartialTotal">Total:</span> <span id="praWaterTotal">0</span> kg</div>
                     </div>
-                    <div class="form-group">
-                        <label data-key="praMasaSueloHumedo">Masa Suelo Húmedo (kg)</label>
-                        <input type="text" inputmode="decimal" id="praMasaSueloHumedo" onchange="calcPra()">
+                    <div class="form-group" style="grid-column:1/-1">
+                        <label data-key="praSueloPartials">Suelo Húmedo (pesos parciales)</label>
+                        <div id="sueloPartials"></div>
+                        <button class="btn-secondary" onclick="addPraPartial('suelo')">+ <span data-key="praAddPartial">Agregar</span></button>
+                        <div class="total-line"><span data-key="praPartialTotal">Total:</span> <span id="praSueloTotal">0</span> kg</div>
                     </div>
-                    <div class="form-group">
-                        <label data-key="praMasaRoca">Masa Roca (kg)</label>
-                        <input type="text" inputmode="decimal" id="praMasaRoca" onchange="calcPra()">
+                    <div class="form-group" style="grid-column:1/-1">
+                        <label data-key="praRocaPartials">Roca (pesos parciales)</label>
+                        <div id="rocaPartials"></div>
+                        <button class="btn-secondary" onclick="addPraPartial('roca')">+ <span data-key="praAddPartial">Agregar</span></button>
+                        <div class="total-line"><span data-key="praPartialTotal">Total:</span> <span id="praRocaTotal">0</span> kg</div>
                     </div>
                     <div class="form-group">
                         <label data-key="praHumedad">Humedad (%)</label>
@@ -878,8 +910,8 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const APP_VERSION = '1.1.2';
-        const SW_VERSION = 'campolab-v1.1.1';
+        const APP_VERSION = '1.1.3';
+        const SW_VERSION = 'campolab-v1.1.3';
 
         // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
         const WATER_DENSITY_TABLE = {};
@@ -979,11 +1011,13 @@
                 praDensidadSecaMax: "Densidad Seca Máxima (g/cm³)",
                 praDensidadRoca: "Densidad Roca (kg/m³)",
                 praData: "Datos del Ensayo",
-                praMasaAguaInicial: "Masa Agua Inicial (kg)",
-                praMasaAguaSobrante: "Masa Agua Sobrante (kg)",
-                praMasaAguaTotal: "Masa Agua Total (kg)",
-                praMasaSueloHumedo: "Masa Suelo Húmedo (kg)",
-                praMasaRoca: "Masa Roca (kg)",
+                praAguaInicialPartials: "Agua Inicial (pesos parciales)",
+                praAguaSobrantePartials: "Agua Sobrante (pesos parciales)",
+                praAguaPartials: "Agua Agregada (pesos parciales)",
+                praSueloPartials: "Suelo Húmedo (pesos parciales)",
+                praRocaPartials: "Roca (pesos parciales)",
+                praAddPartial: "Agregar",
+                praPartialTotal: "Total:",
                 praHumedad: "Humedad (%)",
                 praResults: "Resultados",
                 praVolTotal: "Volumen Anillo + Pozo (cm³)",
@@ -1067,11 +1101,13 @@
                 praDensidadSecaMax: "Max Dry Density (g/cm³)",
                 praDensidadRoca: "Rock Density (kg/m³)",
                 praData: "Test Data",
-                praMasaAguaInicial: "Initial Water Mass (kg)",
-                praMasaAguaSobrante: "Leftover Water Mass (kg)",
-                praMasaAguaTotal: "Total Water Mass (kg)",
-                praMasaSueloHumedo: "Wet Soil Mass (kg)",
-                praMasaRoca: "Rock Mass (kg)",
+                praAguaInicialPartials: "Initial Water (partial weights)",
+                praAguaSobrantePartials: "Leftover Water (partial weights)",
+                praAguaPartials: "Added Water (partial weights)",
+                praSueloPartials: "Wet Soil (partial weights)",
+                praRocaPartials: "Rock (partial weights)",
+                praAddPartial: "Add",
+                praPartialTotal: "Total:",
                 praHumedad: "Moisture (%)",
                 praResults: "Results",
                 praVolTotal: "Ring + Pit Volume (cm³)",
@@ -1733,6 +1769,49 @@
         }
 
         // ==================== PRA ====================
+        const PRA_PARTIALS = {
+            waterInicial: { container: 'waterInicialPartials', total: 'praWaterInicialTotal' },
+            waterSobrante: { container: 'waterSobrantePartials', total: 'praWaterSobranteTotal' },
+            water: { container: 'waterPartials', total: 'praWaterTotal' },
+            suelo: { container: 'sueloPartials', total: 'praSueloTotal' },
+            roca: { container: 'rocaPartials', total: 'praRocaTotal' }
+        };
+
+        function addPraPartial(type, value) {
+            const info = PRA_PARTIALS[type];
+            if (!info) return;
+            const container = document.getElementById(info.container);
+            const row = document.createElement('div');
+            row.className = 'partial-row';
+            row.innerHTML = `<input type="text" inputmode="decimal" class="praPartial" data-type="${type}" value="${value !== undefined ? value : ''}" onchange="updatePraPartials()">
+                             <button class="remove-btn" onclick="removePraPartial(this)" type="button">×</button>`;
+            container.appendChild(row);
+            updatePraPartials();
+        }
+
+        function removePraPartial(btn) {
+            const row = btn.closest('.partial-row');
+            if (row) row.remove();
+            updatePraPartials();
+        }
+
+        function updatePraPartials() {
+            Object.keys(PRA_PARTIALS).forEach(type => {
+                const inputs = document.querySelectorAll(`.praPartial[data-type="${type}"]`);
+                let total = 0;
+                inputs.forEach(input => {
+                    total += parseNum(input.value) || 0;
+                });
+                const totalEl = document.getElementById(PRA_PARTIALS[type].total);
+                if (totalEl) totalEl.textContent = total.toFixed(3).replace(/\.?0+$/, '').replace('.', ',');
+            });
+            calcPra();
+        }
+
+        function getPraPartials(type) {
+            return Array.from(document.querySelectorAll(`.praPartial[data-type="${type}"]`)).map(input => input.value);
+        }
+
         function clearPraForm() {
             document.getElementById('praPozoNum').value = '';
             document.getElementById('praTemp').value = '';
@@ -1745,11 +1824,10 @@
             document.getElementById('praDensidadAgua').value = '';
             document.getElementById('praDensidadSecaMax').value = '2.134';
             document.getElementById('praDensidadRoca').value = '2800';
-            document.getElementById('praMasaAguaInicial').value = '';
-            document.getElementById('praMasaAguaSobrante').value = '';
-            document.getElementById('praMasaAguaTotal').value = '';
-            document.getElementById('praMasaSueloHumedo').value = '';
-            document.getElementById('praMasaRoca').value = '';
+            Object.keys(PRA_PARTIALS).forEach(type => {
+                document.getElementById(PRA_PARTIALS[type].container).innerHTML = '';
+                document.getElementById(PRA_PARTIALS[type].total).textContent = '0';
+            });
             document.getElementById('praHumedad').value = '';
             document.getElementById('resVolTotal').textContent = '-';
             document.getElementById('resVolAnillo').textContent = '-';
@@ -1775,11 +1853,34 @@
             document.getElementById('praDescripcion').value = d.descripcion || '';
             document.getElementById('praDensidadSecaMax').value = d.densidadSecaMax || '2.134';
             document.getElementById('praDensidadRoca').value = d.densidadRoca || '2800';
-            document.getElementById('praMasaAguaInicial').value = d.masaAguaInicial || '';
-            document.getElementById('praMasaAguaSobrante').value = d.masaAguaSobrante || '';
-            document.getElementById('praMasaAguaTotal').value = d.masaAguaTotal || '';
-            document.getElementById('praMasaSueloHumedo').value = d.masaSueloHumedo || '';
-            document.getElementById('praMasaRoca').value = d.masaRoca || '';
+            Object.keys(PRA_PARTIALS).forEach(type => {
+                document.getElementById(PRA_PARTIALS[type].container).innerHTML = '';
+            });
+            if (Array.isArray(d.masaAguaInicialPartials)) {
+                d.masaAguaInicialPartials.forEach(v => addPraPartial('waterInicial', v));
+            } else if (d.masaAguaInicial) {
+                addPraPartial('waterInicial', d.masaAguaInicial);
+            }
+            if (Array.isArray(d.masaAguaSobrantePartials)) {
+                d.masaAguaSobrantePartials.forEach(v => addPraPartial('waterSobrante', v));
+            } else if (d.masaAguaSobrante) {
+                addPraPartial('waterSobrante', d.masaAguaSobrante);
+            }
+            if (Array.isArray(d.masaAguaPartials)) {
+                d.masaAguaPartials.forEach(v => addPraPartial('water', v));
+            } else if (d.masaAguaTotal) {
+                addPraPartial('water', d.masaAguaTotal);
+            }
+            if (Array.isArray(d.masaSueloPartials)) {
+                d.masaSueloPartials.forEach(v => addPraPartial('suelo', v));
+            } else if (d.masaSueloHumedo) {
+                addPraPartial('suelo', d.masaSueloHumedo);
+            }
+            if (Array.isArray(d.masaRocaPartials)) {
+                d.masaRocaPartials.forEach(v => addPraPartial('roca', v));
+            } else if (d.masaRoca) {
+                addPraPartial('roca', d.masaRoca);
+            }
             document.getElementById('praHumedad').value = d.humedad || '';
             calcPra();
             changed = false;
@@ -1800,11 +1901,11 @@
                 descripcion: document.getElementById('praDescripcion').value,
                 densidadSecaMax: document.getElementById('praDensidadSecaMax').value,
                 densidadRoca: document.getElementById('praDensidadRoca').value,
-                masaAguaInicial: document.getElementById('praMasaAguaInicial').value,
-                masaAguaSobrante: document.getElementById('praMasaAguaSobrante').value,
-                masaAguaTotal: document.getElementById('praMasaAguaTotal').value,
-                masaSueloHumedo: document.getElementById('praMasaSueloHumedo').value,
-                masaRoca: document.getElementById('praMasaRoca').value,
+                masaAguaInicialPartials: getPraPartials('waterInicial'),
+                masaAguaSobrantePartials: getPraPartials('waterSobrante'),
+                masaAguaPartials: getPraPartials('water'),
+                masaSueloPartials: getPraPartials('suelo'),
+                masaRocaPartials: getPraPartials('roca'),
                 humedad: document.getElementById('praHumedad').value
             };
             const name = data.pozoNum || (lang === 'es' ? 'Pozo' : 'Pit');
@@ -1840,11 +1941,11 @@
 
         function calcPraResults() {
             const densidadAgua = parseNum(document.getElementById('praDensidadAgua').value) || 1;
-            const masaAguaTotal = parseNum(document.getElementById('praMasaAguaTotal').value) || 0;
-            const masaAguaInicial = parseNum(document.getElementById('praMasaAguaInicial').value) || 0;
-            const masaAguaSobrante = parseNum(document.getElementById('praMasaAguaSobrante').value) || 0;
-            let masaSueloHumedo = parseNum(document.getElementById('praMasaSueloHumedo').value) || 0;
-            const masaRoca = parseNum(document.getElementById('praMasaRoca').value) || 0;
+            const masaAguaTotal = parseNum(document.getElementById('praWaterTotal').textContent) || 0;
+            const masaAguaInicial = parseNum(document.getElementById('praWaterInicialTotal').textContent) || 0;
+            const masaAguaSobrante = parseNum(document.getElementById('praWaterSobranteTotal').textContent) || 0;
+            let masaSueloHumedo = parseNum(document.getElementById('praSueloTotal').textContent) || 0;
+            const masaRoca = parseNum(document.getElementById('praRocaTotal').textContent) || 0;
             const densidadRoca = parseNum(document.getElementById('praDensidadRoca').value) || 2800;
             const humedad = parseNum(document.getElementById('praHumedad').value) || 0;
             const densidadSecaMax = parseNum(document.getElementById('praDensidadSecaMax').value) || 0;
