@@ -607,11 +607,11 @@
                     </div>
                     <div class="form-group">
                         <label data-key="elevationDiff">Diff. Altura (m)</label>
-                        <input type="number" id="elevationDiff" step="0.01" placeholder="Ej: 12.15">
+                        <input type="text" inputmode="decimal" id="elevationDiff" placeholder="Ej: 12.15">
                     </div>
                     <div class="form-group">
                         <label data-key="waterLevel">Nivel Freático (m)</label>
-                        <input type="number" id="waterLevel" step="0.01" placeholder="Ej: 8.50">
+                        <input type="text" inputmode="decimal" id="waterLevel" placeholder="Ej: 8.50">
                     </div>
                     <div class="form-group full">
                         <label data-key="stratumDesc">Descripción del Estrato</label>
@@ -625,19 +625,19 @@
                 <div class="constants-row">
                     <div class="form-group">
                         <label>&eta; (calibración)</label>
-                        <input type="number" id="eta" step="0.0001" placeholder="Factor">
+                        <input type="text" inputmode="decimal" id="eta" placeholder="Factor">
                     </div>
                     <div class="form-group">
                         <label>A (cm²)</label>
-                        <input type="number" id="areaA" step="0.01" placeholder="Área">
+                        <input type="text" inputmode="decimal" id="areaA" placeholder="Área">
                     </div>
                     <div class="form-group">
                         <label>Vc (cm³)</label>
-                        <input type="number" id="volVc" step="0.01" placeholder="Volumen">
+                        <input type="text" inputmode="decimal" id="volVc" placeholder="Volumen">
                     </div>
                     <div class="form-group">
                         <label>Pw (kPa)</label>
-                        <input type="number" id="pw" step="0.01" placeholder="Presión H.">
+                        <input type="text" inputmode="decimal" id="pw" placeholder="Presión H.">
                     </div>
                 </div>
             </div>
@@ -724,7 +724,7 @@
                     </div>
                     <div class="form-group">
                         <label data-key="praTemp">Temperatura Agua (°C)</label>
-                        <input type="number" id="praTemp" step="0.1" onchange="calcPra()">
+                        <input type="text" inputmode="decimal" id="praTemp" onchange="calcPra()">
                     </div>
                     <div class="form-group">
                         <label data-key="praMetodo">Método (A o B)</label>
@@ -736,15 +736,15 @@
                     </div>
                     <div class="form-group">
                         <label data-key="praDiametro">Diámetro Anillo (m)</label>
-                        <input type="number" id="praDiametro" step="0.01" placeholder="1">
+                        <input type="text" inputmode="decimal" id="praDiametro" placeholder="1">
                     </div>
                     <div class="form-group">
                         <label data-key="praTamanio">Tamaño Máximo (GTM)</label>
-                        <input type="number" id="praTamanio" step="1" placeholder="5">
+                        <input type="text" inputmode="numeric" id="praTamanio" placeholder="5">
                     </div>
                     <div class="form-group">
                         <label data-key="praProfundidad">Profundidad Pozo (m)</label>
-                        <input type="number" id="praProfundidad" step="0.01" placeholder="0.62">
+                        <input type="text" inputmode="decimal" id="praProfundidad" placeholder="0.62">
                     </div>
                     <div class="form-group">
                         <label data-key="praDate">Fecha</label>
@@ -762,15 +762,15 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label data-key="praDensidadAgua">Densidad Agua (g/cm³)</label>
-                        <input type="number" id="praDensidadAgua" step="0.00001" class="readonly" readonly>
+                        <input type="text" inputmode="decimal" id="praDensidadAgua" class="readonly" readonly>
                     </div>
                     <div class="form-group">
                         <label data-key="praDensidadSecaMax">Densidad Seca Máxima (g/cm³)</label>
-                        <input type="number" id="praDensidadSecaMax" step="0.001" placeholder="2.134">
+                        <input type="text" inputmode="decimal" id="praDensidadSecaMax" placeholder="2.134">
                     </div>
                     <div class="form-group">
                         <label data-key="praDensidadRoca">Densidad Roca (kg/m³)</label>
-                        <input type="number" id="praDensidadRoca" step="1" value="2800">
+                        <input type="text" inputmode="decimal" id="praDensidadRoca" value="2800">
                     </div>
                 </div>
             </div>
@@ -780,27 +780,27 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label data-key="praMasaAguaInicial">Masa Agua Inicial (kg)</label>
-                        <input type="number" id="praMasaAguaInicial" step="0.01" onchange="calcPra()">
+                        <input type="text" inputmode="decimal" id="praMasaAguaInicial" onchange="calcPra()">
                     </div>
                     <div class="form-group">
                         <label data-key="praMasaAguaSobrante">Masa Agua Sobrante (kg)</label>
-                        <input type="number" id="praMasaAguaSobrante" step="0.01" onchange="calcPra()">
+                        <input type="text" inputmode="decimal" id="praMasaAguaSobrante" onchange="calcPra()">
                     </div>
                     <div class="form-group">
                         <label data-key="praMasaAguaTotal">Masa Agua Total (kg)</label>
-                        <input type="number" id="praMasaAguaTotal" step="0.01" onchange="calcPra()">
+                        <input type="text" inputmode="decimal" id="praMasaAguaTotal" onchange="calcPra()">
                     </div>
                     <div class="form-group">
                         <label data-key="praMasaSueloHumedo">Masa Suelo Húmedo (kg)</label>
-                        <input type="number" id="praMasaSueloHumedo" step="0.01" onchange="calcPra()">
+                        <input type="text" inputmode="decimal" id="praMasaSueloHumedo" onchange="calcPra()">
                     </div>
                     <div class="form-group">
                         <label data-key="praMasaRoca">Masa Roca (kg)</label>
-                        <input type="number" id="praMasaRoca" step="0.01" onchange="calcPra()">
+                        <input type="text" inputmode="decimal" id="praMasaRoca" onchange="calcPra()">
                     </div>
                     <div class="form-group">
                         <label data-key="praHumedad">Humedad (%)</label>
-                        <input type="number" id="praHumedad" step="0.01" onchange="calcPra()">
+                        <input type="text" inputmode="decimal" id="praHumedad" onchange="calcPra()">
                     </div>
                 </div>
             </div>
@@ -867,8 +867,8 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const APP_VERSION = '1.1.0';
-        const SW_VERSION = 'campolab-v1.1.0';
+        const APP_VERSION = '1.1.1';
+        const SW_VERSION = 'campolab-v1.1.1';
 
         // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
         const WATER_DENSITY_TABLE = {};
@@ -888,7 +888,7 @@
 
         function getWaterDensity(temp) {
             if (!temp && temp !== 0) return 1;
-            const t = Math.round(parseFloat(temp) * 10) / 10;
+            const t = Math.round(parseNum(temp) * 10) / 10;
             if (t < 15 || t > 30.9) return 1;
             return WATER_DENSITY_TABLE[t] || 1;
         }
@@ -1495,12 +1495,12 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="row-num">${n}</td>
-                <td class="col-pm"><input type="number" inputmode="decimal" class="inp-pm" step="0.01" value="${pmVal}" onchange="calcRow(this)"></td>
-                <td><input type="number" inputmode="decimal" class="inp-p1" step="0.01" onchange="calcRow(this)"></td>
-                <td class="col-vol"><input type="number" inputmode="decimal" class="inp-15" step="0.1" onchange="calcRow(this)"></td>
-                <td class="col-vol"><input type="number" inputmode="decimal" class="inp-30" step="0.1" onchange="calcRow(this)"></td>
-                <td class="col-vol"><input type="number" inputmode="decimal" class="inp-60" step="0.1" onchange="calcRow(this)"></td>
-                <td class="col-vol"><input type="number" inputmode="decimal" class="inp-180" step="0.1" onchange="calcRow(this)"></td>
+                <td class="col-pm"><input type="text" inputmode="decimal" class="inp-pm" value="${pmVal}" onchange="calcRow(this)"></td>
+                <td><input type="text" inputmode="decimal" class="inp-p1" onchange="calcRow(this)"></td>
+                <td class="col-vol"><input type="text" inputmode="decimal" class="inp-15" onchange="calcRow(this)"></td>
+                <td class="col-vol"><input type="text" inputmode="decimal" class="inp-30" onchange="calcRow(this)"></td>
+                <td class="col-vol"><input type="text" inputmode="decimal" class="inp-60" onchange="calcRow(this)"></td>
+                <td class="col-vol"><input type="text" inputmode="decimal" class="inp-180" onchange="calcRow(this)"></td>
             `;
             tbody.appendChild(tr);
             const ctr = document.createElement('tr');
@@ -1559,14 +1559,14 @@
             const tr = input.closest('tr');
             const idx = Array.from(tr.parentElement.children).indexOf(tr);
             const rowNum = idx + 1;
-            const pm = parseFloat(tr.querySelector('.inp-pm').value) || 0;
-            const p1 = parseFloat(tr.querySelector('.inp-p1').value) || 0;
-            const v30 = parseFloat(tr.querySelector('.inp-30').value) || 0;
-            const v60 = parseFloat(tr.querySelector('.inp-60').value) || 0;
-            const v180 = parseFloat(tr.querySelector('.inp-180').value) || 0;
-            const pw = parseFloat(document.getElementById('pw').value) || 0;
-            const eta = parseFloat(document.getElementById('eta').value) || 0;
-            const areaA = parseFloat(document.getElementById('areaA').value) || 0;
+            const pm = parseNum(tr.querySelector('.inp-pm').value) || 0;
+            const p1 = parseNum(tr.querySelector('.inp-p1').value) || 0;
+            const v30 = parseNum(tr.querySelector('.inp-30').value) || 0;
+            const v60 = parseNum(tr.querySelector('.inp-60').value) || 0;
+            const v180 = parseNum(tr.querySelector('.inp-180').value) || 0;
+            const pw = parseNum(document.getElementById('pw').value) || 0;
+            const eta = parseNum(document.getElementById('eta').value) || 0;
+            const areaA = parseNum(document.getElementById('areaA').value) || 0;
             const pCorr = pm - p1 + pw;
             setCalc(`cp-${rowNum}`, pCorr, 2);
             const deltaV = eta * (pm + pw);
@@ -1647,17 +1647,17 @@
             const calcData = [
                 ['#', 'P Corregido (kPa)', '\u03b4v (cm³)', 'V Corregido (cm³)', '\u0394V60-30', '\u0394V180-30']
             ];
-            const pw = parseFloat(constants.pw) || 0;
-            const eta = parseFloat(constants.eta) || 0;
-            const areaA = parseFloat(constants.areaA) || 0;
+            const pw = parseNum(constants.pw) || 0;
+            const eta = parseNum(constants.eta) || 0;
+            const areaA = parseNum(constants.areaA) || 0;
             document.querySelectorAll('#tableBody tr').forEach((tr, i) => {
                 const rowNum = i + 1;
-                const pm = parseFloat(tr.querySelector('.inp-pm').value) || 0;
-                const p1 = parseFloat(tr.querySelector('.inp-p1').value) || 0;
-                const v15 = parseFloat(tr.querySelector('.inp-15').value) || 0;
-                const v30 = parseFloat(tr.querySelector('.inp-30').value) || 0;
-                const v60 = parseFloat(tr.querySelector('.inp-60').value) || 0;
-                const v180 = parseFloat(tr.querySelector('.inp-180').value) || 0;
+                const pm = parseNum(tr.querySelector('.inp-pm').value) || 0;
+                const p1 = parseNum(tr.querySelector('.inp-p1').value) || 0;
+                const v15 = parseNum(tr.querySelector('.inp-15').value) || 0;
+                const v30 = parseNum(tr.querySelector('.inp-30').value) || 0;
+                const v60 = parseNum(tr.querySelector('.inp-60').value) || 0;
+                const v180 = parseNum(tr.querySelector('.inp-180').value) || 0;
                 fieldData.push([rowNum, pm, p1, v15, v30, v60, v180]);
                 const pCorr = pm - p1 + pw;
                 const deltaV = eta * (pm + pw);
@@ -1710,7 +1710,7 @@
             newRow.querySelector('.inp-pm').focus();
             markChanged();
             document.querySelectorAll('.quick-btn').forEach(btn => {
-                btn.classList.toggle('active', parseFloat(btn.textContent) === val);
+                btn.classList.toggle('active', parseNum(btn.textContent) === val);
             });
         }
 
@@ -1821,15 +1821,15 @@
         }
 
         function calcPraResults() {
-            const densidadAgua = parseFloat(document.getElementById('praDensidadAgua').value) || 1;
-            const masaAguaTotal = parseFloat(document.getElementById('praMasaAguaTotal').value) || 0;
-            const masaAguaInicial = parseFloat(document.getElementById('praMasaAguaInicial').value) || 0;
-            const masaAguaSobrante = parseFloat(document.getElementById('praMasaAguaSobrante').value) || 0;
-            let masaSueloHumedo = parseFloat(document.getElementById('praMasaSueloHumedo').value) || 0;
-            const masaRoca = parseFloat(document.getElementById('praMasaRoca').value) || 0;
-            const densidadRoca = parseFloat(document.getElementById('praDensidadRoca').value) || 2800;
-            const humedad = parseFloat(document.getElementById('praHumedad').value) || 0;
-            const densidadSecaMax = parseFloat(document.getElementById('praDensidadSecaMax').value) || 0;
+            const densidadAgua = parseNum(document.getElementById('praDensidadAgua').value) || 1;
+            const masaAguaTotal = parseNum(document.getElementById('praMasaAguaTotal').value) || 0;
+            const masaAguaInicial = parseNum(document.getElementById('praMasaAguaInicial').value) || 0;
+            const masaAguaSobrante = parseNum(document.getElementById('praMasaAguaSobrante').value) || 0;
+            let masaSueloHumedo = parseNum(document.getElementById('praMasaSueloHumedo').value) || 0;
+            const masaRoca = parseNum(document.getElementById('praMasaRoca').value) || 0;
+            const densidadRoca = parseNum(document.getElementById('praDensidadRoca').value) || 2800;
+            const humedad = parseNum(document.getElementById('praHumedad').value) || 0;
+            const densidadSecaMax = parseNum(document.getElementById('praDensidadSecaMax').value) || 0;
             // Corrección por roca (igual que el Excel)
             if (masaRoca > 0) {
                 masaSueloHumedo = masaSueloHumedo - masaRoca;
@@ -1847,6 +1847,12 @@
                 : 0;
             const compactacion = densidadSecaMax ? (densidadSeca / densidadSecaMax) * 100 : 0;
             return { volTotal, volAnillo, volPozo, densidadHumeda, densidadSeca, compactacion };
+        }
+
+        function parseNum(str) {
+            const s = str === null || str === undefined ? '' : String(str);
+            const v = parseFloat(s.replace(',', '.'));
+            return isNaN(v) ? 0 : v;
         }
 
         function fmt(val, decimals) {
@@ -1944,12 +1950,12 @@
         function drawChart() {
             const pts = [];
             document.querySelectorAll('#tableBody tr').forEach(tr => {
-                const pm = parseFloat(tr.querySelector('.inp-pm').value) || 0;
-                const p1 = parseFloat(tr.querySelector('.inp-p1').value) || 0;
-                const pw = parseFloat(document.getElementById('pw').value) || 0;
-                const v60 = parseFloat(tr.querySelector('.inp-60').value) || 0;
-                const v180 = parseFloat(tr.querySelector('.inp-180').value) || 0;
-                const eta = parseFloat(document.getElementById('eta').value) || 0;
+                const pm = parseNum(tr.querySelector('.inp-pm').value) || 0;
+                const p1 = parseNum(tr.querySelector('.inp-p1').value) || 0;
+                const pw = parseNum(document.getElementById('pw').value) || 0;
+                const v60 = parseNum(tr.querySelector('.inp-60').value) || 0;
+                const v180 = parseNum(tr.querySelector('.inp-180').value) || 0;
+                const eta = parseNum(document.getElementById('eta').value) || 0;
                 const v = v60 || v180;
                 if (pm && v) {
                     const pCorr = pm - p1 + pw;
