@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a5276">
+    <meta name="description" content="Herramienta de campo para ensayos de presiómetro y densidad por reemplazo con agua.">
+    <link rel="manifest" href="manifest.json">
+    <title data-key="pageTitle">Campo Lab</title>
+    <script src="chart.js"></script>
+    <style>
+        :root {
+            --primary: #1a5276;
+            --primary-light: #2980b9;
+            --accent: #e67e22;
+            --accent-hover: #d35400;
+            --success: #27ae60;
+            --bg: #f0f2f5;
+            --card: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --border: #d5d8dc;
+            --input-bg: #f8f9fa;
+            --shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 15px;
+            line-height: 1.4;
+            padding-bottom: 90px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .view { display: none; }
+        .view.active { display: block; }
+
+        .container { max-width: 700px; margin: 0 auto; padding: 12px; }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 18px 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .header h1 { font-size: 1.15rem; font-weight: 600; }
+        .header .subtitle { font-size: 0.8rem; opacity: 0.85; margin-top: 4px; }
+        .header .date-display { margin-top: 8px; font-size: 0.78rem; opacity: 0.8; font-family: monospace; }
+
+        .header-nav {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 16px; margin-bottom: 12px;
+        }
+        .header-nav h1 { font-size: 1rem; font-weight: 600; }
+        .back-btn {
+            background: rgba(255,255,255,0.2); border: none; color: white;
+            padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer;
+        }
+
+        /* Card */
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--primary-light);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Compact Form */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .form-group.full { grid-column: 1 / -1; }
+        label {
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+        input, select, textarea {
+            padding: 10px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            background: var(--input-bg);
+            transition: border-color 0.15s;
+            width: 100%;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            background: white;
+        }
+        textarea { resize: vertical; min-height: 50px; }
+        .readonly { background: #e8f8e8; color: var(--success); font-weight: 600; }
+
+        /* Constants */
+        .constants-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        /* Toggle calculations visibility */
+        .toggle-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            padding: 10px;
+            background: #e8f0fe;
+            border: 1px solid #b8d4f0;
+            border-radius: 8px;
+            color: var(--primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        .toggle-btn:active { background: #d4e4f7; }
+
+        /* Field table */
+        .field-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .field-table thead th {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 8px 4px;
+            font-weight: 600;
+            text-align: center;
+            font-size: 0.78rem;
+            position: sticky;
+            top: 0;
+        }
+        .field-table tbody td {
+            padding: 4px 2px;
+            text-align: center;
+            border-bottom: 1px solid #eef0f2;
+        }
+        .field-table tbody tr:nth-child(even) { background: #fafbfc; }
+        .field-table tbody tr:hover { background: #f0f4f8; }
+        .field-table td input {
+            width: 100%;
+            padding: 8px 2px;
+            border: 1.5px solid transparent;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.9rem;
+            background: transparent;
+            transition: all 0.15s;
+        }
+        .field-table td input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            background: white;
+            box-shadow: 0 0 0 2px rgba(41,128,185,0.1);
+        }
+        .field-table .col-pm { background: #e8f4f8; font-weight: 600; }
+        .field-table .col-pm input { background: #e8f4f8; font-weight: 700; color: var(--primary); font-size: 0.95rem; }
+        .field-table .col-vol input { font-size: 0.9rem; }
+        .field-table .row-num { font-size: 0.7rem; color: var(--text-light); font-weight: 600; width: 28px; }
+
+        /* Calculated results table */
+        .calc-section { display: none; }
+        .calc-section.show { display: block; }
+        .calc-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .calc-table thead th {
+            background: #e8f8e8;
+            color: var(--success);
+            padding: 6px 3px;
+            font-weight: 600;
+            text-align: center;
+            font-size: 0.72rem;
+            border-bottom: 2px solid var(--success);
+        }
+        .calc-table tbody td {
+            padding: 4px 3px;
+            text-align: center;
+            border-bottom: 1px solid #eef0f2;
+            font-size: 0.82rem;
+        }
+        .calc-table tbody tr:nth-child(even) { background: #f8fdf8; }
+        .calc-table .calc-value { font-weight: 600; color: var(--success); }
+        .calc-table .calc-creep { font-weight: 600; color: var(--accent); }
+
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+        /* Action buttons */
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.15s;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-outline { background: white; border: 1.5px solid var(--border); color: var(--text); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-small { padding: 6px 10px; font-size: 0.75rem; flex: none; }
+
+        /* Home cards */
+        .home-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .home-card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 20px 12px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .home-card:active { transform: scale(0.97); }
+        .home-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .home-card-icon { font-size: 2rem; margin-bottom: 8px; }
+        .home-card-title { font-size: 0.95rem; font-weight: 600; color: var(--primary); }
+        .home-card-desc { font-size: 0.75rem; color: var(--text-light); margin-top: 4px; }
+
+        /* Saved tests list */
+        .tests-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .test-item {
+            background: var(--card);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .test-info { flex: 1; min-width: 0; }
+        .test-name { font-weight: 600; font-size: 0.9rem; color: var(--text); }
+        .test-meta { font-size: 0.75rem; color: var(--text-light); margin-top: 2px; }
+        .test-actions { display: flex; gap: 6px; }
+
+        .empty-state {
+            text-align: center;
+            padding: 24px 16px;
+            color: var(--text-light);
+            font-size: 0.85rem;
+        }
+
+        /* FAB */
+        .fab-container {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+        .fab {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+            position: relative;
+        }
+        .fab:active { transform: scale(0.92); }
+        .fab-graph { background: linear-gradient(135deg, var(--accent), var(--accent-hover)); color: white; }
+        .fab-lang { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; font-size: 0.75rem; font-weight: 800; }
+        .fab-save { background: linear-gradient(135deg, var(--success), #229954); color: white; font-size: 1.2rem; }
+        .fab-home { background: linear-gradient(135deg, #8e44ad, #9b59b6); color: white; font-size: 1.1rem; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55);
+            display: none; align-items: flex-end; justify-content: center;
+            z-index: 2000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px;
+        }
+        .modal-header h2 { font-size: 1.1rem; color: var(--primary); }
+        .modal-close { background: none; border: none; font-size: 1.6rem; cursor: pointer; color: var(--text-light); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .modal-close:active { background: var(--bg); }
+        .chart-container { position: relative; height: 350px; }
+
+        /* Toast */
+        .toast {
+            position: fixed; top: 16px; right: 16px;
+            background: var(--success); color: white;
+            padding: 12px 18px; border-radius: 10px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+            font-weight: 500; font-size: 0.88rem;
+            z-index: 3000;
+            transform: translateX(150%);
+            transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+        }
+        .toast.show { transform: translateX(0); }
+        .toast.error { background: #e74c3c; }
+        .toast.info { background: var(--primary); }
+
+        /* Status bar */
+        .status-bar {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white; border-top: 1px solid var(--border);
+            padding: 6px 16px;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.75rem; color: var(--text-light);
+            z-index: 500;
+        }
+        .status-saved { color: var(--success); font-weight: 600; }
+        .status-unsaved { color: var(--accent); font-weight: 600; }
+
+        /* Quick pressure presets */
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+        .quick-btn {
+            flex-shrink: 0;
+            padding: 8px 14px;
+            background: white;
+            border: 1.5px solid var(--border);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .quick-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* Update notification */
+        .update-banner {
+            position: fixed; top: 0; left: 0; right: 0;
+            background: var(--primary); color: white;
+            padding: 12px 16px;
+            display: none; align-items: center; justify-content: space-between;
+            gap: 12px; z-index: 4000;
+        }
+        .update-banner.show { display: flex; }
+        .update-banner span { font-size: 0.85rem; }
+        .update-banner .btn { flex: none; padding: 6px 12px; font-size: 0.75rem; }
+
+        /* Results grid */
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .result-box {
+            background: #f8fdf8;
+            border: 1px solid #c8e6c9;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        .result-box label { font-size: 0.72rem; color: var(--text-light); display: block; }
+        .result-box .value { font-size: 1.05rem; font-weight: 700; color: var(--success); display: block; margin-top: 4px; }
+
+        /* Print */
+        @media print {
+            .fab-container, .status-bar, .btn-row, .toggle-btn, .quick-actions, .update-banner, .test-actions, .back-btn { display: none !important; }
+            body { background: white; padding-bottom: 0; }
+            .calc-section { display: block !important; }
+            .view { display: none !important; }
+            .view.active { display: block !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="update-banner" id="updateBanner">
+        <span data-key="updateText">Nueva versión disponible</span>
+        <div class="btn-row" style="margin-top:0">
+            <button class="btn btn-success btn-small" onclick="applyUpdate()" data-key="updateNow">Actualizar</button>
+            <button class="btn btn-outline btn-small" onclick="dismissUpdate()" data-key="updateLater">Más tarde</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- HOME VIEW -->
+        <div id="homeView" class="view active">
+            <div class="header">
+                <h1 data-key="homeTitle">Campo Lab</h1>
+                <div class="subtitle" data-key="homeSubtitle">Herramientas de campo geotécnico</div>
+                <div class="date-display" id="currentDateTime"></div>
+            </div>
+
+            <div class="home-cards">
+                <div class="home-card" onclick="openPresio()">
+                    <div class="home-card-icon">&#128200;</div>
+                    <div class="home-card-title" data-key="cardPresio">Presiómetro</div>
+                    <div class="home-card-desc" data-key="cardPresioDesc">Ensayo presión-volumen</div>
+                </div>
+                <div class="home-card" onclick="openPra()">
+                    <div class="home-card-icon">&#128167;</div>
+                    <div class="home-card-title" data-key="cardPra">Densidad PRA</div>
+                    <div class="home-card-desc" data-key="cardPraDesc">Reemplazo con agua</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">&#128203; <span data-key="savedTests">Ensayos Guardados</span></div>
+                <div id="testsList" class="tests-list"></div>
+            </div>
+
+            <div class="card" style="margin-top:16px">
+                <div class="btn-row">
+                    <button class="btn btn-outline" onclick="forceUpdateApp()" data-key="btnForceUpdate">Forzar actualización</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PRESIÓMETRO VIEW -->
+        <div id="presioView" class="view">
+            <div class="header header-nav">
+                <button class="back-btn" onclick="goHome()">&#8592; <span data-key="btnBack">Volver</span></button>
+                <h1 data-key="mainTitle">ENSAYO DE PRESIÓMETRO</h1>
+                <div style="width:60px"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">&#128203; <span data-key="generalInfo">Información General</span></div>
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label data-key="projectName">Proyecto</label>
+                        <input type="text" id="projectName" placeholder="Nombre del proyecto">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="testDate">Fecha</label>
+                        <input type="date" id="testDate">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="testTime">Hora</label>
+                        <input type="time" id="testTime">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="testNumber">Ensayo N°</label>
+                        <input type="text" id="testNumber" placeholder="Ej: B6-1">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="elevationDiff">Diff. Altura (m)</label>
+                        <input type="number" id="elevationDiff" step="0.01" placeholder="Ej: 12.15">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="waterLevel">Nivel Freático (m)</label>
+                        <input type="number" id="waterLevel" step="0.01" placeholder="Ej: 8.50">
+                    </div>
+                    <div class="form-group full">
+                        <label data-key="stratumDesc">Descripción del Estrato</label>
+                        <textarea id="stratumDesc" rows="2" placeholder="Tipo de suelo, color, humedad..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">&#9881;&#65039; <span data-key="testConstants">Constantes del Equipo</span></div>
+                <div class="constants-row">
+                    <div class="form-group">
+                        <label>&eta; (calibración)</label>
+                        <input type="number" id="eta" step="0.0001" placeholder="Factor">
+                    </div>
+                    <div class="form-group">
+                        <label>A (cm²)</label>
+                        <input type="number" id="areaA" step="0.01" placeholder="Área">
+                    </div>
+                    <div class="form-group">
+                        <label>Vc (cm³)</label>
+                        <input type="number" id="volVc" step="0.01" placeholder="Volumen">
+                    </div>
+                    <div class="form-group">
+                        <label>Pw (kPa)</label>
+                        <input type="number" id="pw" step="0.01" placeholder="Presión H.">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">&#128200; <span data-key="dataTable">Lecturas de Campo</span></div>
+                <div class="quick-actions" id="quickActions">
+                    <button class="quick-btn" onclick="setPressure(0)">0</button>
+                    <button class="quick-btn" onclick="setPressure(0.5)">0.5</button>
+                    <button class="quick-btn" onclick="setPressure(1.0)">1.0</button>
+                    <button class="quick-btn" onclick="setPressure(1.5)">1.5</button>
+                    <button class="quick-btn" onclick="setPressure(2.0)">2.0</button>
+                    <button class="quick-btn" onclick="setPressure(2.5)">2.5</button>
+                    <button class="quick-btn" onclick="setPressure(3.0)">3.0</button>
+                    <button class="quick-btn" onclick="setPressure(4.0)">4.0</button>
+                    <button class="quick-btn" onclick="setPressure(5.0)">5.0</button>
+                    <button class="quick-btn" onclick="setPressure(6.0)">6.0</button>
+                    <button class="quick-btn" onclick="setPressure(7.0)">7.0</button>
+                    <button class="quick-btn" onclick="setPressure(8.0)">8.0</button>
+                </div>
+
+                <div class="table-scroll">
+                    <table class="field-table">
+                        <thead>
+                            <tr>
+                                <th style="width:26px">#</th>
+                                <th data-key="colPm">Pm<br><small>kPa</small></th>
+                                <th data-key="colP1">P1<br><small>Calib</small></th>
+                                <th>15s</th>
+                                <th>30s</th>
+                                <th>60s</th>
+                                <th>180s</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="addRow()">+ <span data-key="btnAddRow">Fila</span></button>
+                    <button class="btn btn-outline" onclick="removeLastRow()">&#8722;</button>
+                    <button class="btn btn-success" onclick="calculateAll()">&#128295; <span data-key="btnCalculate">Calcular</span></button>
+                </div>
+
+                <button class="toggle-btn" onclick="toggleCalculations()" id="toggleCalcBtn">
+                    &#128161; <span data-key="showCalcs">Ver resultados calculados</span>
+                </button>
+
+                <div class="calc-section" id="calcSection">
+                    <div class="table-scroll">
+                        <table class="calc-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th data-key="colPcorr">P Corregido<br>kPa</th>
+                                    <th data-key="colDeltaV">&delta;v<br>cm³</th>
+                                    <th data-key="colVcorr">V Corregido<br>cm³</th>
+                                    <th data-key="colCreep60">&Delta;V60-30</th>
+                                    <th data-key="colCreep180">&Delta;V180-30</th>
+                                </tr>
+                            </thead>
+                            <tbody id="calcBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PRA VIEW -->
+        <div id="praView" class="view">
+            <div class="header header-nav">
+                <button class="back-btn" onclick="goHome()">&#8592; <span data-key="btnBack">Volver</span></button>
+                <h1 data-key="praTitle">DENSIDAD POR REEMPLAZO CON AGUA</h1>
+                <div style="width:60px"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">&#128203; <span data-key="praGeneralInfo">Información General</span></div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label data-key="praPozoNum">N° Pozo</label>
+                        <input type="text" id="praPozoNum" placeholder="Ej: 1">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="praTemp">Temperatura Agua (°C)</label>
+                        <input type="number" id="praTemp" step="0.1" onchange="calcPra()">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="praMetodo">Método (A o B)</label>
+                        <input type="text" id="praMetodo" placeholder="A">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="praEquipo">Equipo Compactación</label>
+                        <input type="text" id="praEquipo" placeholder="Rodillo liso">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="praDiametro">Diámetro Anillo (m)</label>
+                        <input type="number" id="praDiametro" step="0.01" placeholder="1">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="praTamanio">Tamaño Máximo (GTM)</label>
+                        <input type="number" id="praTamanio" step="1" placeholder="5">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="praProfundidad">Profundidad Pozo (m)</label>
+                        <input type="number" id="praProfundidad" step="0.01" placeholder="0.62">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="praDate">Fecha</label>
+                        <input type="date" id="praDate">
+                    </div>
+                    <div class="form-group full">
+                        <label data-key="praDescripcion">Descripción Visual</label>
+                        <textarea id="praDescripcion" rows="2" placeholder="Tipo de suelo, color, humedad..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">&#9881;&#65039; <span data-key="praConstants">Constantes</span></div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label data-key="praDensidadAgua">Densidad Agua (g/cm³)</label>
+                        <input type="number" id="praDensidadAgua" step="0.00001" class="readonly" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label data-key="praDensidadSecaMax">Densidad Seca Máxima (g/cm³)</label>
+                        <input type="number" id="praDensidadSecaMax" step="0.001" placeholder="2.134">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="praDensidadRoca">Densidad Roca (kg/m³)</label>
+                        <input type="number" id="praDensidadRoca" step="1" value="2800">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">&#128167; <span data-key="praData">Datos del Ensayo</span></div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label data-key="praMasaAguaInicial">Masa Agua Inicial (kg)</label>
+                        <input type="number" id="praMasaAguaInicial" step="0.01" onchange="calcPra()">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="praMasaAguaSobrante">Masa Agua Sobrante (kg)</label>
+                        <input type="number" id="praMasaAguaSobrante" step="0.01" onchange="calcPra()">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="praMasaAguaTotal">Masa Agua Total (kg)</label>
+                        <input type="number" id="praMasaAguaTotal" step="0.01" onchange="calcPra()">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="praMasaSueloHumedo">Masa Suelo Húmedo (kg)</label>
+                        <input type="number" id="praMasaSueloHumedo" step="0.01" onchange="calcPra()">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="praMasaRoca">Masa Roca (kg)</label>
+                        <input type="number" id="praMasaRoca" step="0.01" onchange="calcPra()">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="praHumedad">Humedad (%)</label>
+                        <input type="number" id="praHumedad" step="0.01" onchange="calcPra()">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">&#128202; <span data-key="praResults">Resultados</span></div>
+                <div class="results-grid">
+                    <div class="result-box">
+                        <label data-key="praVolTotal">Volumen Anillo + Pozo (cm³)</label>
+                        <span class="value" id="resVolTotal">-</span>
+                    </div>
+                    <div class="result-box">
+                        <label data-key="praVolAnillo">Volumen Anillo (cm³)</label>
+                        <span class="value" id="resVolAnillo">-</span>
+                    </div>
+                    <div class="result-box">
+                        <label data-key="praVolPozo">Volumen Pozo (cm³)</label>
+                        <span class="value" id="resVolPozo">-</span>
+                    </div>
+                    <div class="result-box">
+                        <label data-key="praDensidadHumeda">Densidad Húmeda (g/cm³)</label>
+                        <span class="value" id="resDensidadHumeda">-</span>
+                    </div>
+                    <div class="result-box">
+                        <label data-key="praDensidadSeca">Densidad Seca (g/cm³)</label>
+                        <span class="value" id="resDensidadSeca">-</span>
+                    </div>
+                    <div class="result-box">
+                        <label data-key="praCompactacion">Compactación (%)</label>
+                        <span class="value" id="resCompactacion">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FABs -->
+    <div class="fab-container">
+        <button class="fab fab-home" onclick="goHome()" title="Inicio">&#8962;</button>
+        <button class="fab fab-save" onclick="saveCurrent()" title="Guardar">&#128190;</button>
+        <button class="fab fab-lang" onclick="toggleLanguage()" id="langLabel">EN</button>
+        <button class="fab fab-graph" id="fabGraph" onclick="showGraph()" title="Grafica">&#128200;</button>
+    </div>
+
+    <!-- Status -->
+    <div class="status-bar">
+        <span id="statusText" class="status-unsaved">&#9679; <span data-key="statusUnsaved">Sin guardar</span></span>
+        <span id="recordCount">0 filas</span>
+        <span id="versionDisplay">v1.0.0</span>
+    </div>
+
+    <!-- Modal Grafica -->
+    <div class="modal-overlay" id="graphModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 data-key="graphTitle">Curva P-V</h2>
+                <button class="modal-close" onclick="closeGraph()">&times;</button>
+            </div>
+            <div class="chart-container"><canvas id="pvChart"></canvas></div>
+            <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="downloadChart()" data-key="btnDownload">&#128229; Descargar</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const APP_VERSION = '1.0.0';
+        const SW_VERSION = 'campolab-v1.0.0';
+
+        // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
+        const WATER_DENSITY_TABLE = {};
+        const waterDensityBase = {
+            15:0.99910,16:0.99895,17:0.99878,18:0.99860,19:0.99841,
+            20:0.99821,21:0.99799,22:0.99777,23:0.99754,24:0.99730,
+            25:0.99705,26:0.99679,27:0.99652,28:0.99624,29:0.99595,
+            30:0.99565,31:0.99534
+        };
+        for (let t = 15.0; t <= 30.9; t = Math.round((t + 0.1) * 100) / 100) {
+            const lower = Math.floor(t);
+            const upper = lower + 1;
+            const frac = Math.round((t - lower) * 100) / 100;
+            const d = waterDensityBase[lower] + (waterDensityBase[upper] - waterDensityBase[lower]) * frac;
+            WATER_DENSITY_TABLE[Math.round(t * 10) / 10] = Math.round(d * 100000) / 100000;
+        }
+
+        function getWaterDensity(temp) {
+            if (!temp && temp !== 0) return 1;
+            const t = Math.round(parseFloat(temp) * 10) / 10;
+            if (t < 15 || t > 30.9) return 1;
+            return WATER_DENSITY_TABLE[t] || 1;
+        }
+
+        const T = {
+            es: {
+                pageTitle: "Campo Lab",
+                homeTitle: "Campo Lab",
+                homeSubtitle: "Herramientas de campo geotécnico",
+                cardPresio: "Presiómetro",
+                cardPresioDesc: "Ensayo presión-volumen",
+                cardPra: "Densidad PRA",
+                cardPraDesc: "Reemplazo con agua",
+                savedTests: "Ensayos Guardados",
+                noTests: "No hay ensayos guardados",
+                btnBack: "Volver",
+                btnForceUpdate: "Forzar actualización",
+                updateText: "Nueva versión disponible",
+                updateNow: "Actualizar",
+                updateLater: "Más tarde",
+                updateNoSignal: "Señal insuficiente para actualizar. Se usa la caché.",
+                updateChecking: "Verificando actualización...",
+                mainTitle: "ENSAYO DE PRESIÓMETRO",
+                subtitle: "Hoja de Campo",
+                generalInfo: "Información General",
+                projectName: "Proyecto",
+                testDate: "Fecha",
+                testTime: "Hora",
+                testNumber: "Ensayo N°",
+                elevationDiff: "Diff. Altura (m)",
+                waterLevel: "Nivel Freático (m)",
+                stratumDesc: "Descripción del Estrato",
+                testConstants: "Constantes del Equipo",
+                dataTable: "Lecturas de Campo",
+                colPm: "Pm\nkPa",
+                colP1: "P1\nCalib",
+                colPcorr: "P Corregido\nkPa",
+                colDeltaV: "\u03b4v\ncm\u00b3",
+                colVcorr: "V Corregido\ncm\u00b3",
+                colCreep60: "\u0394V60-30",
+                colCreep180: "\u0394V180-30",
+                btnAddRow: "Fila",
+                btnCalculate: "Calcular",
+                btnEdit: "Editar",
+                btnDelete: "Eliminar",
+                showCalcs: "Ver resultados calculados",
+                hideCalcs: "Ocultar resultados",
+                statusSaved: "Guardado",
+                statusUnsaved: "Sin guardar",
+                graphTitle: "Curva Presión-Volumen",
+                btnDownload: "Descargar",
+                toastSaved: "Guardado \u2713",
+                toastCalculated: "Cálculos listos",
+                toastNoData: "Faltan datos para graficar",
+                rows: "filas",
+                praTitle: "DENSIDAD POR REEMPLAZO CON AGUA",
+                praGeneralInfo: "Información General",
+                praPozoNum: "N° Pozo",
+                praTemp: "Temperatura Agua (°C)",
+                praMetodo: "Método (A o B)",
+                praEquipo: "Equipo Compactación",
+                praDiametro: "Diámetro Anillo (m)",
+                praTamanio: "Tamaño Máximo (GTM)",
+                praProfundidad: "Profundidad Pozo (m)",
+                praDate: "Fecha",
+                praDescripcion: "Descripción Visual",
+                praConstants: "Constantes",
+                praDensidadAgua: "Densidad Agua (g/cm³)",
+                praDensidadSecaMax: "Densidad Seca Máxima (g/cm³)",
+                praDensidadRoca: "Densidad Roca (kg/m³)",
+                praData: "Datos del Ensayo",
+                praMasaAguaInicial: "Masa Agua Inicial (kg)",
+                praMasaAguaSobrante: "Masa Agua Sobrante (kg)",
+                praMasaAguaTotal: "Masa Agua Total (kg)",
+                praMasaSueloHumedo: "Masa Suelo Húmedo (kg)",
+                praMasaRoca: "Masa Roca (kg)",
+                praHumedad: "Humedad (%)",
+                praResults: "Resultados",
+                praVolTotal: "Volumen Anillo + Pozo (cm³)",
+                praVolAnillo: "Volumen Anillo (cm³)",
+                praVolPozo: "Volumen Pozo (cm³)",
+                praDensidadHumeda: "Densidad Húmeda (g/cm³)",
+                praDensidadSeca: "Densidad Seca (g/cm³)",
+                praCompactacion: "Compactación (%)"
+            },
+            en: {
+                pageTitle: "Campo Lab",
+                homeTitle: "Campo Lab",
+                homeSubtitle: "Geotechnical field tools",
+                cardPresio: "Pressuremeter",
+                cardPresioDesc: "Pressure-volume test",
+                cardPra: "Water Replacement Density",
+                cardPraDesc: "Sand cone replacement",
+                savedTests: "Saved Tests",
+                noTests: "No saved tests",
+                btnBack: "Back",
+                btnForceUpdate: "Force update",
+                updateText: "New version available",
+                updateNow: "Update",
+                updateLater: "Later",
+                updateNoSignal: "Signal too weak to update. Using cache.",
+                updateChecking: "Checking for update...",
+                mainTitle: "PRESSUREMETER TEST",
+                subtitle: "Field Sheet",
+                generalInfo: "General Information",
+                projectName: "Project",
+                testDate: "Date",
+                testTime: "Time",
+                testNumber: "Test No.",
+                elevationDiff: "Height Diff. (m)",
+                waterLevel: "Water Table (m)",
+                stratumDesc: "Stratum Description",
+                testConstants: "Equipment Constants",
+                dataTable: "Field Readings",
+                colPm: "Pm\nkPa",
+                colP1: "P1\nCalib",
+                colPcorr: "Corr. P\nkPa",
+                colDeltaV: "\u03b4v\ncm\u00b3",
+                colVcorr: "Corr. V\ncm\u00b3",
+                colCreep60: "\u0394V60-30",
+                colCreep180: "\u0394V180-30",
+                btnAddRow: "Row",
+                btnCalculate: "Calculate",
+                btnEdit: "Edit",
+                btnDelete: "Delete",
+                showCalcs: "Show calculated results",
+                hideCalcs: "Hide results",
+                statusSaved: "Saved",
+                statusUnsaved: "Unsaved",
+                graphTitle: "Pressure-Volume Curve",
+                btnDownload: "Download",
+                toastSaved: "Saved \u2713",
+                toastCalculated: "Calculations done",
+                toastNoData: "Not enough data",
+                rows: "rows",
+                praTitle: "WATER REPLACEMENT DENSITY",
+                praGeneralInfo: "General Information",
+                praPozoNum: "Pit No.",
+                praTemp: "Water Temperature (°C)",
+                praMetodo: "Method (A or B)",
+                praEquipo: "Compaction Equipment",
+                praDiametro: "Ring Diameter (m)",
+                praTamanio: "Max Size (GTM)",
+                praProfundidad: "Pit Depth (m)",
+                praDate: "Date",
+                praDescripcion: "Visual Description",
+                praConstants: "Constants",
+                praDensidadAgua: "Water Density (g/cm³)",
+                praDensidadSecaMax: "Max Dry Density (g/cm³)",
+                praDensidadRoca: "Rock Density (kg/m³)",
+                praData: "Test Data",
+                praMasaAguaInicial: "Initial Water Mass (kg)",
+                praMasaAguaSobrante: "Leftover Water Mass (kg)",
+                praMasaAguaTotal: "Total Water Mass (kg)",
+                praMasaSueloHumedo: "Wet Soil Mass (kg)",
+                praMasaRoca: "Rock Mass (kg)",
+                praHumedad: "Moisture (%)",
+                praResults: "Results",
+                praVolTotal: "Ring + Pit Volume (cm³)",
+                praVolAnillo: "Ring Volume (cm³)",
+                praVolPozo: "Pit Volume (cm³)",
+                praDensidadHumeda: "Wet Density (g/cm³)",
+                praDensidadSeca: "Dry Density (g/cm³)",
+                praCompactacion: "Compaction (%)"
+            }
+        };
+
+        let lang = 'es';
+        let changed = false;
+        let chart = null;
+
+        let presioTests = [];
+        let praTests = [];
+        let currentPresioId = null;
+        let currentPraId = null;
+
+        let updateWaitingSW = null;
+
+        // ==================== INIT ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('versionDisplay').textContent = 'v' + APP_VERSION;
+            initDateTime();
+            loadStorage();
+            createDefaultRows();
+            initPraDate();
+            setupInputs();
+            applyLang();
+            showView('homeView');
+            renderTestsList();
+            setInterval(() => changed && saveCurrent(), 30000);
+            registerSW();
+        });
+
+        function initDateTime() {
+            const now = new Date();
+            document.getElementById('currentDateTime').textContent = now.toLocaleString(lang === 'es' ? 'es-ES' : 'en-US');
+            document.getElementById('testDate').value = now.toISOString().split('T')[0];
+            document.getElementById('testTime').value = now.toTimeString().slice(0,5);
+            document.getElementById('praDate').value = now.toISOString().split('T')[0];
+        }
+
+        function initPraDate() {
+            const now = new Date();
+            document.getElementById('praDate').value = now.toISOString().split('T')[0];
+        }
+
+        function showView(id) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.getElementById('fabGraph').style.display = (id === 'presioView') ? 'flex' : 'none';
+            window.scrollTo(0,0);
+        }
+
+        function goHome() {
+            if (changed) saveCurrent();
+            showView('homeView');
+            renderTestsList();
+        }
+
+        function openPresio() {
+            currentPresioId = null;
+            clearPresioForm();
+            createDefaultRows();
+            initDateTime();
+            changed = false;
+            updateStatus();
+            showView('presioView');
+        }
+
+        function openPra() {
+            currentPraId = null;
+            clearPraForm();
+            initPraDate();
+            calcPra();
+            changed = false;
+            updateStatus();
+            showView('praView');
+        }
+
+        // ==================== STORAGE ====================
+        function loadStorage() {
+            const rawPresio = localStorage.getItem('presioTests');
+            if (rawPresio) {
+                try { presioTests = JSON.parse(rawPresio); } catch(e) {}
+            } else {
+                const old = localStorage.getItem('presioData');
+                if (old) {
+                    try {
+                        const d = JSON.parse(old);
+                        presioTests = [{
+                            id: generateId(),
+                            name: d.header && d.header.testNumber ? d.header.testNumber : 'Ensayo 1',
+                            project: d.header && d.header.projectName ? d.header.projectName : '',
+                            date: d.header && d.header.testDate ? d.header.testDate : new Date().toISOString().split('T')[0],
+                            data: d
+                        }];
+                        localStorage.setItem('presioTests', JSON.stringify(presioTests));
+                        localStorage.removeItem('presioData');
+                    } catch(e) {}
+                }
+            }
+            const rawPra = localStorage.getItem('praTests');
+            if (rawPra) {
+                try { praTests = JSON.parse(rawPra); } catch(e) {}
+            }
+            const rawLang = localStorage.getItem('lang');
+            if (rawLang) lang = rawLang;
+        }
+
+        function saveStorage() {
+            localStorage.setItem('presioTests', JSON.stringify(presioTests));
+            localStorage.setItem('praTests', JSON.stringify(praTests));
+            localStorage.setItem('lang', lang);
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        }
+
+        function saveCurrent() {
+            if (document.getElementById('presioView').classList.contains('active')) {
+                savePresio();
+            } else if (document.getElementById('praView').classList.contains('active')) {
+                savePra();
+            }
+            changed = false;
+            updateStatus();
+            showToast(T[lang].toastSaved, 'success');
+        }
+
+        // ==================== PRESIÓMETRO ====================
+        function clearPresioForm() {
+            document.getElementById('projectName').value = '';
+            document.getElementById('testNumber').value = '';
+            document.getElementById('elevationDiff').value = '';
+            document.getElementById('waterLevel').value = '';
+            document.getElementById('stratumDesc').value = '';
+            document.getElementById('eta').value = '';
+            document.getElementById('areaA').value = '';
+            document.getElementById('volVc').value = '';
+            document.getElementById('pw').value = '';
+            document.getElementById('tableBody').innerHTML = '';
+            document.getElementById('calcBody').innerHTML = '';
+        }
+
+        function loadPresioTest(id) {
+            const test = presioTests.find(t => t.id === id);
+            if (!test) return;
+            currentPresioId = id;
+            const d = test.data || {};
+            if (d.header) {
+                document.getElementById('projectName').value = d.header.projectName || '';
+                document.getElementById('testDate').value = d.header.testDate || '';
+                document.getElementById('testTime').value = d.header.testTime || '';
+                document.getElementById('testNumber').value = d.header.testNumber || '';
+                document.getElementById('elevationDiff').value = d.header.elevationDiff || '';
+                document.getElementById('waterLevel').value = d.header.waterLevel || '';
+                document.getElementById('stratumDesc').value = d.header.stratumDesc || '';
+            }
+            if (d.constants) {
+                document.getElementById('eta').value = d.constants.eta || '';
+                document.getElementById('areaA').value = d.constants.areaA || '';
+                document.getElementById('volVc').value = d.constants.volVc || '';
+                document.getElementById('pw').value = d.constants.pw || '';
+            }
+            document.getElementById('tableBody').innerHTML = '';
+            document.getElementById('calcBody').innerHTML = '';
+            if (d.rows && d.rows.length) {
+                d.rows.forEach(r => {
+                    const tr = addRowWithData(r.pm);
+                    tr.querySelector('.inp-p1').value = r.p1 || '';
+                    tr.querySelector('.inp-15').value = r.v15 || '';
+                    tr.querySelector('.inp-30').value = r.v30 || '';
+                    tr.querySelector('.inp-60').value = r.v60 || '';
+                    tr.querySelector('.inp-180').value = r.v180 || '';
+                });
+            } else {
+                createDefaultRows();
+            }
+            calculateAll();
+            changed = false;
+            updateStatus();
+            showView('presioView');
+        }
+
+        function savePresio() {
+            const rows = [];
+            document.querySelectorAll('#tableBody tr').forEach(tr => {
+                rows.push({
+                    pm: tr.querySelector('.inp-pm').value,
+                    p1: tr.querySelector('.inp-p1').value,
+                    v15: tr.querySelector('.inp-15').value,
+                    v30: tr.querySelector('.inp-30').value,
+                    v60: tr.querySelector('.inp-60').value,
+                    v180: tr.querySelector('.inp-180').value
+                });
+            });
+            const data = {
+                header: {
+                    projectName: document.getElementById('projectName').value,
+                    testDate: document.getElementById('testDate').value,
+                    testTime: document.getElementById('testTime').value,
+                    testNumber: document.getElementById('testNumber').value,
+                    elevationDiff: document.getElementById('elevationDiff').value,
+                    waterLevel: document.getElementById('waterLevel').value,
+                    stratumDesc: document.getElementById('stratumDesc').value
+                },
+                constants: {
+                    eta: document.getElementById('eta').value,
+                    areaA: document.getElementById('areaA').value,
+                    volVc: document.getElementById('volVc').value,
+                    pw: document.getElementById('pw').value
+                },
+                rows, lang
+            };
+            const name = document.getElementById('testNumber').value || (lang === 'es' ? 'Ensayo' : 'Test');
+            const project = document.getElementById('projectName').value || '';
+            const date = document.getElementById('testDate').value || new Date().toISOString().split('T')[0];
+            if (currentPresioId) {
+                const idx = presioTests.findIndex(t => t.id === currentPresioId);
+                if (idx >= 0) presioTests[idx] = { id: currentPresioId, name, project, date, data };
+            } else {
+                currentPresioId = generateId();
+                presioTests.push({ id: currentPresioId, name, project, date, data });
+            }
+            saveStorage();
+        }
+
+        function createDefaultRows() {
+            const pressures = [0,0.25,0.5,0.75,1.0,1.25,1.5,2.0,2.3,2.7,3.0,3.3,3.75,4.0,4.5,5.1,5.5,6.0,6.5,7.0,7.5,8.0];
+            document.getElementById('tableBody').innerHTML = '';
+            document.getElementById('calcBody').innerHTML = '';
+            pressures.forEach(pm => addRowWithData(pm));
+        }
+
+        function addRowWithData(pmVal = '') {
+            const tbody = document.getElementById('tableBody');
+            const calctbody = document.getElementById('calcBody');
+            const n = tbody.children.length + 1;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="row-num">${n}</td>
+                <td class="col-pm"><input type="number" class="inp-pm" step="0.01" value="${pmVal}" onchange="calcRow(this)"></td>
+                <td><input type="number" class="inp-p1" step="0.01" onchange="calcRow(this)"></td>
+                <td class="col-vol"><input type="number" class="inp-15" step="0.1" onchange="calcRow(this)"></td>
+                <td class="col-vol"><input type="number" class="inp-30" step="0.1" onchange="calcRow(this)"></td>
+                <td class="col-vol"><input type="number" class="inp-60" step="0.1" onchange="calcRow(this)"></td>
+                <td class="col-vol"><input type="number" class="inp-180" step="0.1" onchange="calcRow(this)"></td>
+            `;
+            tbody.appendChild(tr);
+            const ctr = document.createElement('tr');
+            ctr.innerHTML = `
+                <td class="row-num">${n}</td>
+                <td class="calc-value" id="cp-${n}">-</td>
+                <td id="dv-${n}">-</td>
+                <td class="calc-value" id="cv-${n}">-</td>
+                <td class="calc-creep" id="c60-${n}">-</td>
+                <td class="calc-creep" id="c180-${n}">-</td>
+            `;
+            calctbody.appendChild(ctr);
+            updateCounts();
+            return tr;
+        }
+
+        function addRow() {
+            addRowWithData();
+            markChanged();
+            showToast(lang==='es'?'Fila agregada':'Row added', 'info');
+        }
+
+        function removeLastRow() {
+            const tbody = document.getElementById('tableBody');
+            const calctbody = document.getElementById('calcBody');
+            if (tbody.children.length > 1) {
+                tbody.removeChild(tbody.lastElementChild);
+                calctbody.removeChild(calctbody.lastElementChild);
+                updateCounts();
+                renumber();
+                markChanged();
+            }
+        }
+
+        function renumber() {
+            document.querySelectorAll('#tableBody tr').forEach((tr, i) => {
+                tr.querySelector('.row-num').textContent = i + 1;
+            });
+            document.querySelectorAll('#calcBody tr').forEach((tr, i) => {
+                tr.querySelector('.row-num').textContent = i + 1;
+                const n = i + 1;
+                tr.querySelector('.calc-value').id = `cp-${n}`;
+                tr.querySelectorAll('td')[2].id = `cv-${n}`;
+                tr.querySelectorAll('td')[1].id = `dv-${n}`;
+                tr.querySelectorAll('td')[3].id = `c60-${n}`;
+                tr.querySelectorAll('td')[4].id = `c180-${n}`;
+            });
+        }
+
+        function updateCounts() {
+            const n = document.getElementById('tableBody').children.length;
+            document.getElementById('recordCount').textContent = `${n} ${T[lang].rows}`;
+        }
+
+        function calcRow(input) {
+            const tr = input.closest('tr');
+            const idx = Array.from(tr.parentElement.children).indexOf(tr);
+            const rowNum = idx + 1;
+            const pm = parseFloat(tr.querySelector('.inp-pm').value) || 0;
+            const p1 = parseFloat(tr.querySelector('.inp-p1').value) || 0;
+            const v30 = parseFloat(tr.querySelector('.inp-30').value) || 0;
+            const v60 = parseFloat(tr.querySelector('.inp-60').value) || 0;
+            const v180 = parseFloat(tr.querySelector('.inp-180').value) || 0;
+            const pw = parseFloat(document.getElementById('pw').value) || 0;
+            const eta = parseFloat(document.getElementById('eta').value) || 0;
+            const areaA = parseFloat(document.getElementById('areaA').value) || 0;
+            const pCorr = pm - p1 + pw;
+            setCalc(`cp-${rowNum}`, pCorr, 2);
+            const deltaV = eta * (pm + pw);
+            setCalc(`dv-${rowNum}`, deltaV, 3);
+            let vCorr = null;
+            if (v60 && deltaV) vCorr = v60 - deltaV;
+            else if (v180 && deltaV) vCorr = v180 - deltaV;
+            setCalc(`cv-${rowNum}`, vCorr, 2);
+            const c60 = (areaA && v60 && v30) ? areaA * (v60 - v30) : null;
+            setCalc(`c60-${rowNum}`, c60, 2);
+            const c180 = (areaA && v180 && v30) ? areaA * (v180 - v30) : null;
+            setCalc(`c180-${rowNum}`, c180, 2);
+            markChanged();
+        }
+
+        function setCalc(id, val, decimals) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = (val !== null && val !== 0) ? val.toFixed(decimals) : '-';
+        }
+
+        function calculateAll() {
+            document.querySelectorAll('.inp-pm').forEach((inp) => {
+                const row = inp.closest('tr');
+                calcRow(row.querySelector('.inp-15') || inp);
+            });
+            showToast(T[lang].toastCalculated, 'info');
+        }
+
+        function toggleCalculations() {
+            const sec = document.getElementById('calcSection');
+            const btn = document.getElementById('toggleCalcBtn');
+            sec.classList.toggle('show');
+            const showing = sec.classList.contains('show');
+            btn.innerHTML = showing
+                ? `&#128161; <span data-key="hideCalcs">${T[lang].hideCalcs}</span>`
+                : `&#128161; <span data-key="showCalcs">${T[lang].showCalcs}</span>`;
+        }
+
+        function setPressure(val) {
+            const rows = document.querySelectorAll('#tableBody tr');
+            for (let row of rows) {
+                const pmInput = row.querySelector('.inp-pm');
+                if (!pmInput.value && !row.querySelector('.inp-15').value) {
+                    pmInput.value = val;
+                    pmInput.focus();
+                    calcRow(pmInput);
+                    markChanged();
+                    return;
+                }
+            }
+            const newRow = addRowWithData(val);
+            newRow.querySelector('.inp-pm').focus();
+            markChanged();
+            document.querySelectorAll('.quick-btn').forEach(btn => {
+                btn.classList.toggle('active', parseFloat(btn.textContent) === val);
+            });
+        }
+
+        // ==================== PRA ====================
+        function clearPraForm() {
+            document.getElementById('praPozoNum').value = '';
+            document.getElementById('praTemp').value = '';
+            document.getElementById('praMetodo').value = '';
+            document.getElementById('praEquipo').value = '';
+            document.getElementById('praDiametro').value = '';
+            document.getElementById('praTamanio').value = '';
+            document.getElementById('praProfundidad').value = '';
+            document.getElementById('praDescripcion').value = '';
+            document.getElementById('praDensidadAgua').value = '';
+            document.getElementById('praDensidadSecaMax').value = '2.134';
+            document.getElementById('praDensidadRoca').value = '2800';
+            document.getElementById('praMasaAguaInicial').value = '';
+            document.getElementById('praMasaAguaSobrante').value = '';
+            document.getElementById('praMasaAguaTotal').value = '';
+            document.getElementById('praMasaSueloHumedo').value = '';
+            document.getElementById('praMasaRoca').value = '';
+            document.getElementById('praHumedad').value = '';
+            document.getElementById('resVolTotal').textContent = '-';
+            document.getElementById('resVolAnillo').textContent = '-';
+            document.getElementById('resVolPozo').textContent = '-';
+            document.getElementById('resDensidadHumeda').textContent = '-';
+            document.getElementById('resDensidadSeca').textContent = '-';
+            document.getElementById('resCompactacion').textContent = '-';
+        }
+
+        function loadPraTest(id) {
+            const test = praTests.find(t => t.id === id);
+            if (!test) return;
+            currentPraId = id;
+            const d = test.data || {};
+            document.getElementById('praPozoNum').value = d.pozoNum || '';
+            document.getElementById('praTemp').value = d.temp || '';
+            document.getElementById('praMetodo').value = d.metodo || '';
+            document.getElementById('praEquipo').value = d.equipo || '';
+            document.getElementById('praDiametro').value = d.diametro || '';
+            document.getElementById('praTamanio').value = d.tamanio || '';
+            document.getElementById('praProfundidad').value = d.profundidad || '';
+            document.getElementById('praDate').value = d.date || new Date().toISOString().split('T')[0];
+            document.getElementById('praDescripcion').value = d.descripcion || '';
+            document.getElementById('praDensidadSecaMax').value = d.densidadSecaMax || '2.134';
+            document.getElementById('praDensidadRoca').value = d.densidadRoca || '2800';
+            document.getElementById('praMasaAguaInicial').value = d.masaAguaInicial || '';
+            document.getElementById('praMasaAguaSobrante').value = d.masaAguaSobrante || '';
+            document.getElementById('praMasaAguaTotal').value = d.masaAguaTotal || '';
+            document.getElementById('praMasaSueloHumedo').value = d.masaSueloHumedo || '';
+            document.getElementById('praMasaRoca').value = d.masaRoca || '';
+            document.getElementById('praHumedad').value = d.humedad || '';
+            calcPra();
+            changed = false;
+            updateStatus();
+            showView('praView');
+        }
+
+        function savePra() {
+            const data = {
+                pozoNum: document.getElementById('praPozoNum').value,
+                temp: document.getElementById('praTemp').value,
+                metodo: document.getElementById('praMetodo').value,
+                equipo: document.getElementById('praEquipo').value,
+                diametro: document.getElementById('praDiametro').value,
+                tamanio: document.getElementById('praTamanio').value,
+                profundidad: document.getElementById('praProfundidad').value,
+                date: document.getElementById('praDate').value,
+                descripcion: document.getElementById('praDescripcion').value,
+                densidadSecaMax: document.getElementById('praDensidadSecaMax').value,
+                densidadRoca: document.getElementById('praDensidadRoca').value,
+                masaAguaInicial: document.getElementById('praMasaAguaInicial').value,
+                masaAguaSobrante: document.getElementById('praMasaAguaSobrante').value,
+                masaAguaTotal: document.getElementById('praMasaAguaTotal').value,
+                masaSueloHumedo: document.getElementById('praMasaSueloHumedo').value,
+                masaRoca: document.getElementById('praMasaRoca').value,
+                humedad: document.getElementById('praHumedad').value
+            };
+            const name = data.pozoNum || (lang === 'es' ? 'Pozo' : 'Pit');
+            const date = data.date || new Date().toISOString().split('T')[0];
+            if (currentPraId) {
+                const idx = praTests.findIndex(t => t.id === currentPraId);
+                if (idx >= 0) {
+                    const res = calcPraResults();
+                    praTests[idx] = { id: currentPraId, name, date, data, results: res };
+                }
+            } else {
+                currentPraId = generateId();
+                const res = calcPraResults();
+                praTests.push({ id: currentPraId, name, date, data, results: res });
+            }
+            saveStorage();
+        }
+
+        function calcPra() {
+            const temp = document.getElementById('praTemp').value;
+            const densidadAgua = getWaterDensity(temp);
+            document.getElementById('praDensidadAgua').value = densidadAgua !== 1 ? densidadAgua.toFixed(5) : '';
+            const res = calcPraResults();
+            document.getElementById('resVolTotal').textContent = fmt(res.volTotal, 2);
+            document.getElementById('resVolAnillo').textContent = fmt(res.volAnillo, 2);
+            document.getElementById('resVolPozo').textContent = fmt(res.volPozo, 2);
+            document.getElementById('resDensidadHumeda').textContent = fmt(res.densidadHumeda, 3);
+            document.getElementById('resDensidadSeca').textContent = fmt(res.densidadSeca, 3);
+            document.getElementById('resCompactacion').textContent = fmt(res.compactacion, 2);
+            markChanged();
+            return res;
+        }
+
+        function calcPraResults() {
+            const densidadAgua = parseFloat(document.getElementById('praDensidadAgua').value) || 1;
+            const masaAguaTotal = parseFloat(document.getElementById('praMasaAguaTotal').value) || 0;
+            const masaAguaInicial = parseFloat(document.getElementById('praMasaAguaInicial').value) || 0;
+            const masaAguaSobrante = parseFloat(document.getElementById('praMasaAguaSobrante').value) || 0;
+            let masaSueloHumedo = parseFloat(document.getElementById('praMasaSueloHumedo').value) || 0;
+            const masaRoca = parseFloat(document.getElementById('praMasaRoca').value) || 0;
+            const densidadRoca = parseFloat(document.getElementById('praDensidadRoca').value) || 2800;
+            const humedad = parseFloat(document.getElementById('praHumedad').value) || 0;
+            const densidadSecaMax = parseFloat(document.getElementById('praDensidadSecaMax').value) || 0;
+            // Corrección por roca (igual que el Excel)
+            if (masaRoca > 0) {
+                masaSueloHumedo = masaSueloHumedo - masaRoca;
+            }
+            let aguaAjustada = masaAguaTotal;
+            if (masaRoca > 0 && densidadRoca > 0) {
+                aguaAjustada = aguaAjustada - (masaRoca / densidadRoca) * 1000;
+            }
+            const volTotal = (aguaAjustada * 1000) / densidadAgua;
+            const volAnillo = ((masaAguaInicial - masaAguaSobrante) * 1000) / densidadAgua;
+            const volPozo = volTotal - volAnillo;
+            const densidadHumeda = volPozo ? (masaSueloHumedo / volPozo) * 1000 : 0;
+            const densidadSeca = (volPozo && humedad > -100)
+                ? ((masaSueloHumedo / (humedad + 100)) * 100) / volPozo * 1000
+                : 0;
+            const compactacion = densidadSecaMax ? (densidadSeca / densidadSecaMax) * 100 : 0;
+            return { volTotal, volAnillo, volPozo, densidadHumeda, densidadSeca, compactacion };
+        }
+
+        function fmt(val, decimals) {
+            if (val === null || val === undefined || val === 0 || Number.isNaN(val)) return '-';
+            return val.toFixed(decimals);
+        }
+
+        // ==================== SAVED TESTS LIST ====================
+        function renderTestsList() {
+            const list = document.getElementById('testsList');
+            list.innerHTML = '';
+            const all = [
+                ...presioTests.map(t => ({ ...t, type: 'presio' })),
+                ...praTests.map(t => ({ ...t, type: 'pra' }))
+            ].sort((a, b) => new Date(b.date) - new Date(a.date));
+            if (!all.length) {
+                list.innerHTML = `<div class="empty-state">${T[lang].noTests}</div>`;
+                return;
+            }
+            all.forEach(t => {
+                const item = document.createElement('div');
+                item.className = 'test-item';
+                let meta = '';
+                if (t.type === 'presio') {
+                    meta = `${t.project || ''} &bull; ${t.date}`;
+                } else {
+                    const comp = t.results && t.results.compactacion ? t.results.compactacion.toFixed(2) + '%' : '-';
+                    const ds = t.results && t.results.densidadSeca ? t.results.densidadSeca.toFixed(3) + ' g/cm³' : '-';
+                    meta = `C: ${comp} &bull; DS: ${ds} &bull; ${t.date}`;
+                }
+                item.innerHTML = `
+                    <div class="test-info">
+                        <div class="test-name">${escapeHtml(t.name)} ${t.type === 'presio' ? '&#128200;' : '&#128167;'}</div>
+                        <div class="test-meta">${meta}</div>
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary btn-small" onclick="editTest('${t.type}','${t.id}')">${T[lang].btnEdit}</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteTest('${t.type}','${t.id}')">${T[lang].btnDelete}</button>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function editTest(type, id) {
+            if (type === 'presio') loadPresioTest(id);
+            else loadPraTest(id);
+        }
+
+        function deleteTest(type, id) {
+            if (!confirm(lang === 'es' ? '¿Eliminar este ensayo?' : 'Delete this test?')) return;
+            if (type === 'presio') {
+                presioTests = presioTests.filter(t => t.id !== id);
+            } else {
+                praTests = praTests.filter(t => t.id !== id);
+            }
+            saveStorage();
+            renderTestsList();
+        }
+
+        // ==================== LANGUAGE ====================
+        function toggleLanguage() {
+            lang = lang === 'es' ? 'en' : 'es';
+            applyLang();
+            document.getElementById('langLabel').textContent = lang === 'es' ? 'EN' : 'ES';
+            markChanged();
+            saveStorage();
+        }
+
+        function applyLang() {
+            document.querySelectorAll('[data-key]').forEach(el => {
+                const k = el.getAttribute('data-key');
+                if (T[lang][k]) el.textContent = T[lang][k];
+            });
+            document.title = T[lang].pageTitle;
+            updateCounts();
+            updateStatus();
+            renderTestsList();
+        }
+
+        // ==================== GRAPH ====================
+        function showGraph() {
+            document.getElementById('graphModal').classList.add('active');
+            drawChart();
+        }
+        function closeGraph() { document.getElementById('graphModal').classList.remove('active'); }
+
+        function drawChart() {
+            const pts = [];
+            document.querySelectorAll('#tableBody tr').forEach(tr => {
+                const pm = parseFloat(tr.querySelector('.inp-pm').value) || 0;
+                const p1 = parseFloat(tr.querySelector('.inp-p1').value) || 0;
+                const pw = parseFloat(document.getElementById('pw').value) || 0;
+                const v60 = parseFloat(tr.querySelector('.inp-60').value) || 0;
+                const v180 = parseFloat(tr.querySelector('.inp-180').value) || 0;
+                const eta = parseFloat(document.getElementById('eta').value) || 0;
+                const v = v60 || v180;
+                if (pm && v) {
+                    const pCorr = pm - p1 + pw;
+                    const deltaV = eta * (pm + pw);
+                    const vCorr = v - deltaV;
+                    if (vCorr > 0) pts.push({ x: vCorr, y: pCorr });
+                }
+            });
+            pts.sort((a, b) => a.x - b.x);
+            if (pts.length < 2) {
+                showToast(T[lang].toastNoData, 'error');
+                return;
+            }
+            const ctx = document.getElementById('pvChart').getContext('2d');
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: { datasets: [{ label: 'P-V', data: pts, borderColor: '#e67e22', backgroundColor: 'rgba(230,126,34,0.08)', borderWidth: 2.5, pointBackgroundColor: '#1a5276', pointRadius: 5, pointHoverRadius: 7, tension: 0.3, fill: true }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `P: ${c.parsed.y.toFixed(2)} kPa, V: ${c.parsed.x.toFixed(1)} cm³` } } }, scales: { x: { type: 'linear', title: { display: true, text: lang==='es'?'V corregido (cm³)':'Corr. V (cm³)' }, grid: { color: 'rgba(0,0,0,0.05)' } }, y: { title: { display: true, text: lang==='es'?'P corregida (kPa)':'Corr. P (kPa)' }, grid: { color: 'rgba(0,0,0,0.05)' } } } }
+            });
+        }
+
+        function downloadChart() {
+            const link = document.createElement('a');
+            const testNum = document.getElementById('testNumber').value || 'test';
+            link.download = `PV_${testNum}_${new Date().toISOString().split('T')[0]}.png`;
+            link.href = document.getElementById('pvChart').toDataURL();
+            link.click();
+        }
+
+        // ==================== UTILS ====================
+        function markChanged() { changed = true; updateStatus(); }
+
+        function updateStatus() {
+            const el = document.getElementById('statusText');
+            if (changed) {
+                el.className = 'status-unsaved';
+                el.innerHTML = `&#9679; ${T[lang].statusUnsaved}`;
+            } else {
+                el.className = 'status-saved';
+                el.innerHTML = `&#10003; ${T[lang].statusSaved}`;
+            }
+        }
+
+        function showToast(msg, type) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show ' + type;
+            setTimeout(() => t.classList.remove('show'), 2500);
+        }
+
+        function setupInputs() {
+            document.querySelectorAll('input, textarea, select').forEach(el => {
+                el.addEventListener('input', () => markChanged());
+            });
+        }
+
+        document.addEventListener('keydown', e => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveCurrent(); }
+            if (e.key === 'Escape') closeGraph();
+        });
+
+        document.getElementById('graphModal').addEventListener('click', e => {
+            if (e.target === e.currentTarget) closeGraph();
+        });
+
+        // ==================== SERVICE WORKER ====================
+        function isGoodConnection() {
+            const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (!conn) return false;
+            if (conn.type === 'wifi') return true;
+            if (conn.effectiveType === '4g') return true;
+            return false;
+        }
+
+        function registerSW() {
+            if (!('serviceWorker' in navigator)) return;
+            navigator.serviceWorker.register('sw.js').then(reg => {
+                reg.addEventListener('updatefound', () => {
+                    const newSW = reg.installing;
+                    if (!newSW) return;
+                    newSW.addEventListener('statechange', () => {
+                        if (newSW.state === 'installed' && navigator.serviceWorker.controller && isGoodConnection()) {
+                            updateWaitingSW = newSW;
+                            document.getElementById('updateBanner').classList.add('show');
+                        }
+                    });
+                });
+            }).catch(err => console.error('SW registration failed', err));
+        }
+
+        function applyUpdate() {
+            if (updateWaitingSW) {
+                updateWaitingSW.postMessage({ type: 'SKIP_WAITING' });
+                updateWaitingSW = null;
+            }
+            document.getElementById('updateBanner').classList.remove('show');
+            setTimeout(() => window.location.reload(), 500);
+        }
+
+        function dismissUpdate() {
+            document.getElementById('updateBanner').classList.remove('show');
+        }
+
+        function forceUpdateApp() {
+            if (!('serviceWorker' in navigator)) {
+                showToast('Service Worker no disponible', 'error');
+                return;
+            }
+            if (!isGoodConnection()) {
+                showToast(T[lang].updateNoSignal, 'error');
+                return;
+            }
+            showToast(T[lang].updateChecking, 'info');
+            navigator.serviceWorker.getRegistration().then(reg => {
+                if (reg) reg.update();
+            });
+        }
+    </script>
+</body>
+</html>

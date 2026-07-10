@@ -1,0 +1,10 @@
+{
+  "name": "Campo Lab - Presiómetro y PRA",
+  "short_name": "Campo Lab",
+  "description": "Herramienta de campo para ensayos de presiómetro y densidad por reemplazo con agua.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f0f2f5",
+  "theme_color": "#1a5276",
+  "orientation": "portrait"
+}
