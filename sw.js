@@ -1,8 +1,9 @@
-const CACHE_NAME = 'campolab-v1.0.0';
+const CACHE_NAME = 'campolab-v1.1.0';
 const ASSETS = [
   './',
   './index.html',
   './chart.js',
+  './xlsx.js',
   './manifest.json'
 ];
 

@@ -8,6 +8,7 @@
     <link rel="manifest" href="manifest.json">
     <title data-key="pageTitle">Campo Lab</title>
     <script src="chart.js"></script>
+    <script src="xlsx.js"></script>
     <style>
         :root {
             --primary: #1a5276;
@@ -436,6 +437,75 @@
         .result-box label { font-size: 0.72rem; color: var(--text-light); display: block; }
         .result-box .value { font-size: 1.05rem; font-weight: 700; color: var(--success); display: block; margin-top: 4px; }
 
+        /* Timer */
+        .timer-card {
+            position: sticky;
+            top: 0;
+            z-index: 120;
+            background: linear-gradient(135deg, #fff 0%, #f8fbfd 100%);
+            border: 2px solid var(--primary-light);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            padding: 12px 14px;
+            margin-bottom: 12px;
+        }
+        .timer-display-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .timer-display {
+            font-family: 'SF Mono', 'Courier New', monospace;
+            font-size: 2.4rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+            letter-spacing: 2px;
+        }
+        .timer-status {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: #f0f2f5;
+            color: var(--text-light);
+            white-space: nowrap;
+        }
+        .timer-status.running { background: #d4edda; color: var(--success); }
+        .timer-status.paused { background: #fff3cd; color: #856404; }
+        .timer-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .timer-controls .btn {
+            padding: 12px 8px;
+            font-size: 0.95rem;
+            min-height: 46px;
+        }
+        .timer-controls .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .timer-next {
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+        .timer-next span { color: var(--accent); font-weight: 700; }
+
+        .timer-highlight {
+            animation: timerPulse 2s ease;
+        }
+        @keyframes timerPulse {
+            0% { background: var(--primary); color: white; transform: scale(1); }
+            50% { background: var(--accent); color: white; transform: scale(1.05); }
+            100% { background: var(--primary); color: white; transform: scale(1); }
+        }
+
         /* Print */
         @media print {
             .fab-container, .status-bar, .btn-row, .toggle-btn, .quick-actions, .update-banner, .test-actions, .back-btn { display: none !important; }
@@ -495,6 +565,25 @@
                 <button class="back-btn" onclick="goHome()">&#8592; <span data-key="btnBack">Volver</span></button>
                 <h1 data-key="mainTitle">ENSAYO DE PRESIÓMETRO</h1>
                 <div style="width:60px"></div>
+            </div>
+
+            <div class="card timer-card" id="timerCard">
+                <div class="timer-display-row">
+                    <div class="timer-display" id="timerDisplay">00:00</div>
+                    <div class="timer-status" id="timerStatus"></div>
+                </div>
+                <div class="timer-controls">
+                    <button class="btn btn-success" id="timerStartBtn" onclick="startTimer()">
+                        <span id="timerStartLabel">Iniciar</span>
+                    </button>
+                    <button class="btn btn-accent" id="timerPauseBtn" onclick="pauseTimer()" disabled>
+                        <span id="timerPauseLabel">Pausar</span>
+                    </button>
+                    <button class="btn btn-outline" id="timerResetBtn" onclick="resetTimer()">
+                        <span id="timerResetLabel">Reiniciar</span>
+                    </button>
+                </div>
+                <div class="timer-next" id="timerNext">15s</div>
             </div>
 
             <div class="card">
@@ -577,9 +666,9 @@
                                 <th style="width:26px">#</th>
                                 <th data-key="colPm">Pm<br><small>kPa</small></th>
                                 <th data-key="colP1">P1<br><small>Calib</small></th>
-                                <th>15s</th>
-                                <th>30s</th>
-                                <th>60s</th>
+                                <th id="th-15">15s</th>
+                                <th id="th-30">30s</th>
+                                <th id="th-60">60s</th>
                                 <th>180s</th>
                             </tr>
                         </thead>
@@ -591,6 +680,7 @@
                     <button class="btn btn-primary" onclick="addRow()">+ <span data-key="btnAddRow">Fila</span></button>
                     <button class="btn btn-outline" onclick="removeLastRow()">&#8722;</button>
                     <button class="btn btn-success" onclick="calculateAll()">&#128295; <span data-key="btnCalculate">Calcular</span></button>
+                    <button class="btn btn-outline" onclick="exportPresioExcel()">&#128229; <span data-key="btnExportExcel">Excel</span></button>
                 </div>
 
                 <button class="toggle-btn" onclick="toggleCalculations()" id="toggleCalcBtn">
@@ -777,8 +867,8 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const APP_VERSION = '1.0.0';
-        const SW_VERSION = 'campolab-v1.0.0';
+        const APP_VERSION = '1.1.0';
+        const SW_VERSION = 'campolab-v1.1.0';
 
         // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
         const WATER_DENSITY_TABLE = {};
@@ -844,8 +934,16 @@
                 btnCalculate: "Calcular",
                 btnEdit: "Editar",
                 btnDelete: "Eliminar",
+                btnExportExcel: "Excel",
                 showCalcs: "Ver resultados calculados",
                 hideCalcs: "Ocultar resultados",
+                timerStart: "Iniciar",
+                timerPause: "Pausar",
+                timerReset: "Reiniciar",
+                timerRunning: "Corriendo",
+                timerPaused: "Pausado",
+                timerStopped: "Detenido",
+                timerNext: "Próxima: {t}",
                 statusSaved: "Guardado",
                 statusUnsaved: "Sin guardar",
                 graphTitle: "Curva Presión-Volumen",
@@ -924,8 +1022,16 @@
                 btnCalculate: "Calculate",
                 btnEdit: "Edit",
                 btnDelete: "Delete",
+                btnExportExcel: "Excel",
                 showCalcs: "Show calculated results",
                 hideCalcs: "Hide results",
+                timerStart: "Start",
+                timerPause: "Pause",
+                timerReset: "Reset",
+                timerRunning: "Running",
+                timerPaused: "Paused",
+                timerStopped: "Stopped",
+                timerNext: "Next: {t}",
                 statusSaved: "Saved",
                 statusUnsaved: "Unsaved",
                 graphTitle: "Pressure-Volume Curve",
@@ -977,6 +1083,16 @@
 
         let updateWaitingSW = null;
 
+        // Timer state
+        let timerRunning = false;
+        let timerStartTime = 0;
+        let timerElapsed = 0;
+        let timerInterval = null;
+        let timerAudioCtx = null;
+        let timerWakeLock = null;
+        const timerAlertFlags = { 15: false, 30: false, 60: false };
+        const TIMER_CYCLE = 60000;
+
         // ==================== INIT ====================
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('versionDisplay').textContent = 'v' + APP_VERSION;
@@ -1014,6 +1130,7 @@
 
         function goHome() {
             if (changed) saveCurrent();
+            pauseTimer();
             showView('homeView');
             renderTestsList();
         }
@@ -1022,6 +1139,7 @@
             currentPresioId = null;
             clearPresioForm();
             createDefaultRows();
+            resetTimer();
             initDateTime();
             changed = false;
             updateStatus();
@@ -1089,6 +1207,181 @@
             showToast(T[lang].toastSaved, 'success');
         }
 
+        // ==================== TIMER ====================
+        function ensureTimerAudio() {
+            if (!timerAudioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) timerAudioCtx = new AudioContext();
+            }
+            if (timerAudioCtx && timerAudioCtx.state === 'suspended') {
+                timerAudioCtx.resume();
+            }
+        }
+
+        function playTimerBeep(type) {
+            ensureTimerAudio();
+            if (!timerAudioCtx) return;
+            const now = timerAudioCtx.currentTime;
+            const osc = timerAudioCtx.createOscillator();
+            const gain = timerAudioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(timerAudioCtx.destination);
+            if (type === '60') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(880, now);
+                osc.frequency.setValueAtTime(698, now + 0.25);
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+                const osc2 = timerAudioCtx.createOscillator();
+                const gain2 = timerAudioCtx.createGain();
+                osc2.connect(gain2);
+                gain2.connect(timerAudioCtx.destination);
+                osc2.type = 'square';
+                osc2.frequency.setValueAtTime(880, now + 0.55);
+                gain2.gain.setValueAtTime(0.08, now + 0.55);
+                gain2.gain.exponentialRampToValueAtTime(0.001, now + 1);
+                osc2.start(now + 0.55);
+                osc2.stop(now + 1);
+            } else {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(type === '30' ? 750 : 600, now);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+        }
+
+        function highlightTimerColumn(seconds) {
+            const th = document.getElementById('th-' + seconds);
+            if (!th) return;
+            th.classList.remove('timer-highlight');
+            void th.offsetWidth;
+            th.classList.add('timer-highlight');
+            setTimeout(() => th.classList.remove('timer-highlight'), 2000);
+        }
+
+        function checkTimerAlerts(cycleMs) {
+            const sec = Math.floor(cycleMs / 1000);
+            if (sec >= 15 && !timerAlertFlags[15]) {
+                timerAlertFlags[15] = true;
+                playTimerBeep('15');
+                highlightTimerColumn(15);
+            }
+            if (sec >= 30 && !timerAlertFlags[30]) {
+                timerAlertFlags[30] = true;
+                playTimerBeep('30');
+                highlightTimerColumn(30);
+            }
+        }
+
+        function formatTimer(ms) {
+            const totalSec = Math.floor(ms / 1000);
+            const m = Math.floor(totalSec / 60).toString().padStart(2, '0');
+            const s = (totalSec % 60).toString().padStart(2, '0');
+            return m + ':' + s;
+        }
+
+        function updateTimerDisplay() {
+            const display = document.getElementById('timerDisplay');
+            const status = document.getElementById('timerStatus');
+            const next = document.getElementById('timerNext');
+            if (!display) return;
+            display.textContent = formatTimer(timerElapsed);
+            if (status) {
+                status.textContent = timerRunning ? T[lang].timerRunning : (timerElapsed > 0 ? T[lang].timerPaused : T[lang].timerStopped);
+                status.className = 'timer-status ' + (timerRunning ? 'running' : (timerElapsed > 0 ? 'paused' : ''));
+            }
+            if (next) {
+                const cycleMs = timerElapsed % TIMER_CYCLE;
+                const nextSec = cycleMs < 15000 ? 15 : (cycleMs < 30000 ? 30 : 60);
+                next.innerHTML = T[lang].timerNext.replace('{t}', '<span>' + nextSec + 's</span>');
+            }
+        }
+
+        function updateTimerLabels() {
+            const startLabel = document.getElementById('timerStartLabel');
+            const pauseLabel = document.getElementById('timerPauseLabel');
+            const resetLabel = document.getElementById('timerResetLabel');
+            if (startLabel) startLabel.textContent = T[lang].timerStart;
+            if (pauseLabel) pauseLabel.textContent = T[lang].timerPause;
+            if (resetLabel) resetLabel.textContent = T[lang].timerReset;
+            updateTimerDisplay();
+        }
+
+        async function requestTimerWakeLock() {
+            if ('wakeLock' in navigator && !timerWakeLock) {
+                try {
+                    timerWakeLock = await navigator.wakeLock.request('screen');
+                } catch (err) {}
+            }
+        }
+
+        function releaseTimerWakeLock() {
+            if (timerWakeLock) {
+                timerWakeLock.release().catch(() => {});
+                timerWakeLock = null;
+            }
+        }
+
+        function timerTick() {
+            if (!timerRunning) return;
+            const previousElapsed = timerElapsed;
+            timerElapsed = Date.now() - timerStartTime;
+            const prevCycle = Math.floor(previousElapsed / TIMER_CYCLE);
+            const newCycle = Math.floor(timerElapsed / TIMER_CYCLE);
+            if (newCycle > prevCycle) {
+                playTimerBeep('60');
+                highlightTimerColumn(60);
+                timerAlertFlags[15] = false;
+                timerAlertFlags[30] = false;
+            }
+            const cycleMs = timerElapsed % TIMER_CYCLE;
+            checkTimerAlerts(cycleMs);
+            updateTimerDisplay();
+        }
+
+        function startTimer() {
+            ensureTimerAudio();
+            requestTimerWakeLock();
+            if (!timerRunning) {
+                timerStartTime = Date.now() - timerElapsed;
+                timerRunning = true;
+                timerInterval = setInterval(timerTick, 100);
+                document.getElementById('timerStartBtn').disabled = true;
+                document.getElementById('timerPauseBtn').disabled = false;
+                updateTimerDisplay();
+            }
+        }
+
+        function pauseTimer() {
+            timerRunning = false;
+            clearInterval(timerInterval);
+            timerInterval = null;
+            releaseTimerWakeLock();
+            document.getElementById('timerStartBtn').disabled = false;
+            document.getElementById('timerPauseBtn').disabled = true;
+            updateTimerDisplay();
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            timerElapsed = 0;
+            timerAlertFlags[15] = false;
+            timerAlertFlags[30] = false;
+            timerAlertFlags[60] = false;
+            updateTimerDisplay();
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (timerRunning && document.visibilityState === 'visible') {
+                timerElapsed = Date.now() - timerStartTime;
+                updateTimerDisplay();
+            }
+        });
+
         // ==================== PRESIÓMETRO ====================
         function clearPresioForm() {
             document.getElementById('projectName').value = '';
@@ -1138,6 +1431,7 @@
             } else {
                 createDefaultRows();
             }
+            resetTimer();
             calculateAll();
             changed = false;
             updateStatus();
@@ -1201,12 +1495,12 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="row-num">${n}</td>
-                <td class="col-pm"><input type="number" class="inp-pm" step="0.01" value="${pmVal}" onchange="calcRow(this)"></td>
-                <td><input type="number" class="inp-p1" step="0.01" onchange="calcRow(this)"></td>
-                <td class="col-vol"><input type="number" class="inp-15" step="0.1" onchange="calcRow(this)"></td>
-                <td class="col-vol"><input type="number" class="inp-30" step="0.1" onchange="calcRow(this)"></td>
-                <td class="col-vol"><input type="number" class="inp-60" step="0.1" onchange="calcRow(this)"></td>
-                <td class="col-vol"><input type="number" class="inp-180" step="0.1" onchange="calcRow(this)"></td>
+                <td class="col-pm"><input type="number" inputmode="decimal" class="inp-pm" step="0.01" value="${pmVal}" onchange="calcRow(this)"></td>
+                <td><input type="number" inputmode="decimal" class="inp-p1" step="0.01" onchange="calcRow(this)"></td>
+                <td class="col-vol"><input type="number" inputmode="decimal" class="inp-15" step="0.1" onchange="calcRow(this)"></td>
+                <td class="col-vol"><input type="number" inputmode="decimal" class="inp-30" step="0.1" onchange="calcRow(this)"></td>
+                <td class="col-vol"><input type="number" inputmode="decimal" class="inp-60" step="0.1" onchange="calcRow(this)"></td>
+                <td class="col-vol"><input type="number" inputmode="decimal" class="inp-180" step="0.1" onchange="calcRow(this)"></td>
             `;
             tbody.appendChild(tr);
             const ctr = document.createElement('tr');
@@ -1299,6 +1593,95 @@
                 calcRow(row.querySelector('.inp-15') || inp);
             });
             showToast(T[lang].toastCalculated, 'info');
+        }
+
+        function exportPresioExcel() {
+            if (typeof XLSX === 'undefined') {
+                showToast(lang === 'es' ? 'Librería Excel no cargada' : 'Excel library not loaded', 'error');
+                return;
+            }
+            const header = {
+                projectName: document.getElementById('projectName').value,
+                testDate: document.getElementById('testDate').value,
+                testTime: document.getElementById('testTime').value,
+                testNumber: document.getElementById('testNumber').value,
+                elevationDiff: document.getElementById('elevationDiff').value,
+                waterLevel: document.getElementById('waterLevel').value,
+                stratumDesc: document.getElementById('stratumDesc').value
+            };
+            const constants = {
+                eta: document.getElementById('eta').value,
+                areaA: document.getElementById('areaA').value,
+                volVc: document.getElementById('volVc').value,
+                pw: document.getElementById('pw').value
+            };
+            const generalLabels = lang === 'es' ? {
+                projectName: 'Proyecto', testDate: 'Fecha', testTime: 'Hora', testNumber: 'Ensayo N°',
+                elevationDiff: 'Diff. Altura (m)', waterLevel: 'Nivel Freático (m)', stratumDesc: 'Descripción del Estrato',
+                constants: 'Constantes del Equipo', eta: '\u03b7 (calibración)', areaA: 'A (cm²)',
+                volVc: 'Vc (cm³)', pw: 'Pw (kPa)'
+            } : {
+                projectName: 'Project', testDate: 'Date', testTime: 'Time', testNumber: 'Test No.',
+                elevationDiff: 'Height Diff. (m)', waterLevel: 'Water Table (m)', stratumDesc: 'Stratum Description',
+                constants: 'Equipment Constants', eta: '\u03b7 (calibration)', areaA: 'A (cm²)',
+                volVc: 'Vc (cm³)', pw: 'Pw (kPa)'
+            };
+            const generalData = [
+                [generalLabels.projectName, header.projectName],
+                [generalLabels.testDate, header.testDate],
+                [generalLabels.testTime, header.testTime],
+                [generalLabels.testNumber, header.testNumber],
+                [generalLabels.elevationDiff, header.elevationDiff],
+                [generalLabels.waterLevel, header.waterLevel],
+                [generalLabels.stratumDesc, header.stratumDesc],
+                [],
+                [generalLabels.constants],
+                [generalLabels.eta, constants.eta],
+                [generalLabels.areaA, constants.areaA],
+                [generalLabels.volVc, constants.volVc],
+                [generalLabels.pw, constants.pw]
+            ];
+            const fieldData = [
+                ['#', 'Pm (kPa)', 'P1 (Calib)', '15s', '30s', '60s', '180s']
+            ];
+            const calcData = [
+                ['#', 'P Corregido (kPa)', '\u03b4v (cm³)', 'V Corregido (cm³)', '\u0394V60-30', '\u0394V180-30']
+            ];
+            const pw = parseFloat(constants.pw) || 0;
+            const eta = parseFloat(constants.eta) || 0;
+            const areaA = parseFloat(constants.areaA) || 0;
+            document.querySelectorAll('#tableBody tr').forEach((tr, i) => {
+                const rowNum = i + 1;
+                const pm = parseFloat(tr.querySelector('.inp-pm').value) || 0;
+                const p1 = parseFloat(tr.querySelector('.inp-p1').value) || 0;
+                const v15 = parseFloat(tr.querySelector('.inp-15').value) || 0;
+                const v30 = parseFloat(tr.querySelector('.inp-30').value) || 0;
+                const v60 = parseFloat(tr.querySelector('.inp-60').value) || 0;
+                const v180 = parseFloat(tr.querySelector('.inp-180').value) || 0;
+                fieldData.push([rowNum, pm, p1, v15, v30, v60, v180]);
+                const pCorr = pm - p1 + pw;
+                const deltaV = eta * (pm + pw);
+                let vCorr = null;
+                if (v60 && deltaV) vCorr = v60 - deltaV;
+                else if (v180 && deltaV) vCorr = v180 - deltaV;
+                const c60 = (areaA && v60 && v30) ? areaA * (v60 - v30) : null;
+                const c180 = (areaA && v180 && v30) ? areaA * (v180 - v30) : null;
+                calcData.push([
+                    rowNum,
+                    pCorr,
+                    deltaV,
+                    vCorr !== null ? vCorr : '',
+                    c60 !== null ? c60 : '',
+                    c180 !== null ? c180 : ''
+                ]);
+            });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(generalData), 'General');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(fieldData), 'DatosCampo');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(calcData), 'Calculos');
+            const fileName = 'Presio_' + (header.testNumber || 'test') + '_' + (header.testDate || new Date().toISOString().split('T')[0]) + '.xlsx';
+            XLSX.writeFile(wb, fileName);
+            showToast(lang === 'es' ? 'Excel exportado' : 'Excel exported', 'success');
         }
 
         function toggleCalculations() {
@@ -1547,6 +1930,7 @@
             document.title = T[lang].pageTitle;
             updateCounts();
             updateStatus();
+            updateTimerLabels();
             renderTestsList();
         }
 
