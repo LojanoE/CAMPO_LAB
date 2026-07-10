@@ -5,9 +5,10 @@ This repository holds two independent field tools for geotechnical pressuremeter
 ## Repository layout
 
 - `index.html` — Single-file mobile web app (HTML/CSS/JS) with two modules: Presiómetro and Densidad por Reemplazo con Agua (PRA).
-- `sw.js` — Service Worker that caches the app and Chart.js for offline use.
+- `sw.js` — Service Worker that caches the app, Chart.js, manifest, and PWA icons for offline use.
 - `chart.js` — Local copy of Chart.js (v4.4.7) so the app does not depend on the CDN offline.
-- `manifest.json` — Minimal PWA manifest for `standalone` display.
+- `manifest.json` — Minimal PWA manifest for `standalone` display, including icon references.
+- `icon.svg`, `icon-192.png`, `icon-512.png` — PWA icons referenced by the manifest and `index.html`.
 - `PRA/13. Hoja auxiliar (PRA) V.0.xlsm` — Macro-enabled Excel workbook with sheets `PRA-1`, `PRA-2`, `PRA-3`, `PRA-3Respaldo`, `LISTAS`.
 
 ## Working on the web app (`index.html`)
@@ -25,6 +26,8 @@ This repository holds two independent field tools for geotechnical pressuremeter
   - `Creep60-30 = A * (V60 - V30)`
   - `Creep180-30 = A * (V180 - V30)`
 - PRA (water replacement density) formulas used:
+  - The five mass fields are dynamic partial-weight lists: Masa Agua Inicial, Masa Agua Sobrante, Masa Agua Total, Masa Suelo Húmedo, and Masa Roca. Each field can accumulate multiple weights and shows a running total.
+  - `Masa_X = sum(pesos parciales ingresados)` for each dynamic mass field.
   - `Densidad_agua = VLOOKUP(Temperatura, LISTAS!A:B, 2)` (approximated by linear interpolation in the app from the Excel table)
   - `Volumen_total = Masa_agua_total * 1000 / Densidad_agua`
   - `Volumen_anillo = (Masa_agua_inicial - Masa_agua_sobrante) * 1000 / Densidad_agua`
@@ -33,12 +36,13 @@ This repository holds two independent field tools for geotechnical pressuremeter
   - `Densidad_seca = (Masa_suelo_húmedo / (Humedad + 100) * 100) / Volumen_pozo * 1000`
   - `Compactación = Densidad_seca / Densidad_seca_máxima * 100`
   - If `Masa_roca` is entered, the app subtracts the rock mass from the wet soil mass and subtracts the displaced water volume from the total water mass, matching the Excel logic.
+  - Old PRA tests saved with single mass values are loaded as the first partial row and continue to work.
 - Saving: Ctrl/Cmd+S calls `saveCurrent()`; autosave runs every 30 seconds when data is dirty. The current module detects whether it is editing an existing test or creating a new one.
 - Home screen: shows two module cards and a list of saved tests from both modules. Each saved test can be edited or deleted.
 
 ## Service Worker and offline behavior
 
-- The Service Worker is registered in `index.html`. It caches `index.html`, `chart.js`, and `manifest.json`.
+- The Service Worker is registered in `index.html`. It caches `index.html`, `chart.js`, `manifest.json`, and the PWA icons (`icon.svg`, `icon-192.png`, `icon-512.png`).
 - Cache version is controlled by the `CACHE_NAME` constant in `sw.js`. Bump that value (and the `APP_VERSION` constant in `index.html`) to release a new version.
 - Fetch strategy:
   - On 4G or WiFi, the SW tries the network first and updates the cache if the network responds.
@@ -50,7 +54,7 @@ This repository holds two independent field tools for geotechnical pressuremeter
 
 To release an update that clients will actually download:
 
-1. Edit `index.html` and bump `APP_VERSION` (e.g., `1.0.0` → `1.0.1`).
+1. Edit `index.html` and bump `APP_VERSION` and `SW_VERSION` (e.g., `1.0.0` → `1.0.1`).
 2. Edit `sw.js` and bump `CACHE_NAME` to match (e.g., `campolab-v1.0.1`).
 3. Test the app over HTTP/localhost.
 4. Commit and push; the new SW will be fetched on the next 4G/WiFi visit.
