@@ -1,74 +1,210 @@
 # AGENTS.md
 
-This repository holds two independent field tools for geotechnical pressuremeter tests. There is no build system, package manager, or CI.
+## Project overview
+
+`CAMPO_LAB` is a client-side, single-file mobile Progressive Web App (PWA) for geotechnical field work. It contains two independent calculation modules:
+
+1. **Presiómetro** — pressuremeter test data entry, correction calculations, creep values, P-V graph, and Excel export.
+2. **Densidad por Reemplazo con Agua (PRA)** — water-replacement density test with partial-weight inputs, volume/density/compaction results, and rock-mass correction.
+
+There is no build system, package manager, backend, or CI. Everything is plain HTML/CSS/JavaScript. The app is meant to run offline after the first load via a Service Worker.
+
+Current version: `1.1.3` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
 
 ## Repository layout
 
-- `index.html` — Single-file mobile web app (HTML/CSS/JS) with two modules: Presiómetro and Densidad por Reemplazo con Agua (PRA).
-- `sw.js` — Service Worker that caches the app, Chart.js, manifest, and PWA icons for offline use.
-- `chart.js` — Local copy of Chart.js (v4.4.7) so the app does not depend on the CDN offline.
-- `manifest.json` — Minimal PWA manifest for `standalone` display, including icon references.
-- `icon.svg`, `icon-192.png`, `icon-512.png` — PWA icons referenced by the manifest and `index.html`.
-- `PRA/13. Hoja auxiliar (PRA) V.0.xlsm` — Macro-enabled Excel workbook with sheets `PRA-1`, `PRA-2`, `PRA-3`, `PRA-3Respaldo`, `LISTAS`.
+- `index.html` — Single-file app containing markup, CSS, and all application JavaScript (~2,200 lines).
+- `sw.js` — Service Worker that caches the app and its assets for offline use.
+- `chart.js` — Vendored copy of Chart.js v4.4.7 (UMD build), used for the pressuremeter P-V curve.
+- `xlsx.js` — Vendored copy of SheetJS `xlsx.js` (used only for pressuremeter Excel export).
+- `manifest.json` — PWA manifest (`standalone`, Spanish/English name, icons, theme colors).
+- `icon.svg`, `icon-192.png`, `icon-512.png` — PWA icons.
+- `PRA/13. Hoja auxiliar (PRA) V.0.xlsm` — Macro-enabled Excel workbook with the reference PRA calculation sheets.
+- `.gitattributes` — `* text=auto` (LF normalization).
+- `LICENSE` — Apache License 2.0.
 
-## Working on the web app (`index.html`)
+No configuration files such as `package.json`, `pyproject.toml`, `Cargo.toml`, etc. exist.
 
-- No build or install step. Serve the repository root with any static file server over HTTP/HTTPS (or localhost). The Service Worker will not register when opening the file directly as `file://`.
-- The app now loads Chart.js from the local `chart.js` file, not from a CDN.
-- State is persisted only to `localStorage` under the keys `presioTests`, `praTests`, and `lang`. There is no backend or network save.
-- Multiple tests are stored per module: `presioTests` and `praTests` are arrays. The old single-key `presioData` is migrated automatically on first load and then removed.
-- UI text is bilingual (Spanish/English). Translations are in the `T` object near the top of the script; labels use `data-key` attributes.
-- The default pressure table has 22 fixed pressure steps. To change the presets, edit the `pressures` array in `createDefaultRows()` and the `quick-actions` button row.
-- Presiómetro formulas used:
-  - `P_corregido = Pm - P1 + Pw`
-  - `deltaV = eta * (Pm + Pw)`
-  - `V_corregido = V60 - deltaV` (falls back to `V180 - deltaV` if `V60` is missing)
-  - `Creep60-30 = A * (V60 - V30)`
-  - `Creep180-30 = A * (V180 - V30)`
-- PRA (water replacement density) formulas used:
-  - The five mass fields are dynamic partial-weight lists: Masa Agua Inicial, Masa Agua Sobrante, Masa Agua Total, Masa Suelo Húmedo, and Masa Roca. Each field can accumulate multiple weights and shows a running total.
-  - `Masa_X = sum(pesos parciales ingresados)` for each dynamic mass field.
-  - `Densidad_agua = VLOOKUP(Temperatura, LISTAS!A:B, 2)` (approximated by linear interpolation in the app from the Excel table)
-  - `Volumen_total = Masa_agua_total * 1000 / Densidad_agua`
-  - `Volumen_anillo = (Masa_agua_inicial - Masa_agua_sobrante) * 1000 / Densidad_agua`
-  - `Volumen_pozo = Volumen_total - Volumen_anillo`
-  - `Densidad_húmeda = Masa_suelo_húmedo / Volumen_pozo * 1000`
-  - `Densidad_seca = (Masa_suelo_húmedo / (Humedad + 100) * 100) / Volumen_pozo * 1000`
-  - `Compactación = Densidad_seca / Densidad_seca_máxima * 100`
-  - If `Masa_roca` is entered, the app subtracts the rock mass from the wet soil mass and subtracts the displaced water volume from the total water mass, matching the Excel logic.
-  - Old PRA tests saved with single mass values are loaded as the first partial row and continue to work.
-- Saving: Ctrl/Cmd+S calls `saveCurrent()`; autosave runs every 30 seconds when data is dirty. The current module detects whether it is editing an existing test or creating a new one.
-- Home screen: shows two module cards and a list of saved tests from both modules. Each saved test can be edited or deleted.
+## Technology stack
+
+- **Runtime:** Browser (mobile-first).
+- **Languages:** HTML5, CSS3, vanilla JavaScript (ES6+).
+- **Charts:** Chart.js v4.4.7 (local UMD file).
+- **Excel generation:** SheetJS `xlsx.js` (local UMD file).
+- **Storage:** `localStorage` only (`presioTests`, `praTests`, `lang`).
+- **Offline:** Service Worker (`sw.js`) with network/cache strategies based on connection quality.
+- **PWA:** Web App Manifest + icons; installable as `standalone`.
+
+## Code organization
+
+All application code lives inside `index.html` in one `<script>` block. The major sections are:
+
+1. **Constants and lookups**
+   - `APP_VERSION` / `SW_VERSION`
+   - `WATER_DENSITY_TABLE` built from the Excel `LISTAS` temperature table (15.0 °C to 30.9 °C, 0.1 °C step).
+   - `T` — bilingual translation object (`es` / `en`) used with `data-key` attributes.
+2. **State**
+   - `presioTests`, `praTests` arrays, `currentPresioId`, `currentPraId`, `lang`, `changed`.
+3. **Init / storage**
+   - `loadStorage()`, `saveStorage()`, migration from legacy `presioData` key.
+4. **Timer**
+   - 60-second cycle with audio/visual alerts at 15 s, 30 s, and 60 s; screen wake-lock support.
+5. **Presiómetro module**
+   - Form I/O, row management, calculations, P-V chart, Excel export.
+6. **PRA module**
+   - Dynamic partial-weight rows, density lookup, result calculation.
+7. **Saved-test list / language / graph / service-worker UI**
+   - `renderTestsList()`, `toggleLanguage()`, `drawChart()`, `registerSW()`, update banner handling.
+
+`sw.js` is independent of `index.html` and only caches GET requests for the listed assets.
+
+## Build, test, and run
+
+- **No build step.**
+- To run locally, serve the repository root over HTTP/HTTPS (or localhost). The Service Worker will not register if the file is opened directly as `file://`.
+- Example local servers:
+  - Python: `python -m http.server 8080`
+  - Node: `npx serve .`
+  - PowerShell (if IIS Express is available): `iisexpress /path:C:\...\CAMPO_LAB /port:8080`
+- Then open `http://localhost:8080/`.
+- There are no automated tests, linters, or formatters. Verify changes manually in a browser and, when possible, compare numeric outputs against the reference Excel workbook.
+
+## Versioning and release
+
+To ship an update that existing clients will pick up:
+
+1. In `index.html`, bump `APP_VERSION` and `SW_VERSION` (e.g. `1.1.3` → `1.1.4`).
+2. In `sw.js`, bump `CACHE_NAME` to match (e.g. `campolab-v1.1.4`).
+3. Test the app over HTTP/localhost.
+4. Commit and push.
+5. On the next visit with a 4G/WiFi connection, the new Service Worker will be fetched and the app will offer an update.
+
+Do not change app content without bumping `CACHE_NAME`; otherwise returning users may keep using the old cached `index.html`.
+
+## Module details and formulas
+
+### Presiómetro
+
+Inputs per row: `Pm`, `P1`, volume readings at `15 s`, `30 s`, `60 s`, `180 s`.
+Constants: `η` (eta), `A` (area), `Vc`, `Pw`.
+
+Calculations (per row, in `calcRow`):
+
+- `P_corregido = Pm - P1 + Pw`
+- `δv = η * (Pm + Pw)`
+- `V_corregido = V60 - δv` if `V60` exists, otherwise `V180 - δv`
+- `ΔV60-30 = A * (V60 - V30)` when all values are present
+- `ΔV180-30 = A * (V180 - V30)` when all values are present
+
+The default pressure table has 22 fixed steps:
+`[0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.3, 2.7, 3.0, 3.3, 3.75, 4.0, 4.5, 5.1, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0]`.
+The quick-action buttons offer a subset: `0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0`.
+To change presets, edit both the `pressures` array in `createDefaultRows()` and the `quick-actions` button row.
+
+The P-V chart uses `V_corregido` on the X axis and `P_corregido` on the Y axis. The graph can be downloaded as a PNG named `PV_<testNumber>_<date>.png`.
+
+`exportPresioExcel()` exports three sheets using SheetJS:
+
+- `General` — project header and equipment constants.
+- `DatosCampo` — raw field readings.
+- `Calculos` — corrected pressure, delta volume, corrected volume, and creep values.
+
+### PRA (Densidad por Reemplazo con Agua)
+
+Five mass fields accept multiple partial weights and display running totals:
+
+- Masa Agua Inicial
+- Masa Agua Sobrante
+- Masa Agua Total (agua agregada)
+- Masa Suelo Húmedo
+- Masa Roca
+
+Water density is looked up from the interpolated `LISTAS` table based on water temperature (valid range 15.0 °C to 30.9 °C; returns `1` outside that range).
+
+Calculations (in `calcPraResults`):
+
+- If `Masa_roca > 0`:
+  - `Masa_suelo_húmedo = Masa_suelo_húmedo_total - Masa_roca`
+  - `Agua_ajustada = Masa_agua_total - (Masa_roca / Densidad_roca) * 1000`
+- Otherwise `Agua_ajustada = Masa_agua_total`.
+- `Volumen_total = Agua_ajustada * 1000 / Densidad_agua`
+- `Volumen_anillo = (Masa_agua_inicial - Masa_agua_sobrante) * 1000 / Densidad_agua`
+- `Volumen_pozo = Volumen_total - Volumen_anillo`
+- `Densidad_húmeda = Masa_suelo_húmedo / Volumen_pozo * 1000`
+- `Densidad_seca = ((Masa_suelo_húmedo / (Humedad + 100)) * 100) / Volumen_pozo * 1000`
+- `Compactación = Densidad_seca / Densidad_seca_máxima * 100`
+
+Default constants in the form:
+
+- `Densidad Seca Máxima` = `2.134` g/cm³
+- `Densidad Roca` = `2800` kg/m³
+
+Old PRA tests saved with single mass values are loaded as the first partial row and continue to work.
+
+There is currently no Excel export for the PRA module.
+
+## Data persistence
+
+- `presioTests` — array of saved pressuremeter tests.
+- `praTests` — array of saved PRA tests.
+- `lang` — current UI language (`es` or `en`).
+- Legacy key `presioData` is migrated automatically on first load and then removed.
+- Saving:
+  - `Ctrl/Cmd + S` triggers `saveCurrent()`.
+  - Autosave runs every 30 seconds while `changed === true`.
+  - The home screen lists saved tests from both modules, sorted by date (newest first).
 
 ## Service Worker and offline behavior
 
-- The Service Worker is registered in `index.html`. It caches `index.html`, `chart.js`, `manifest.json`, and the PWA icons (`icon.svg`, `icon-192.png`, `icon-512.png`).
-- Cache version is controlled by the `CACHE_NAME` constant in `sw.js`. Bump that value (and the `APP_VERSION` constant in `index.html`) to release a new version.
+- `sw.js` registers only over HTTP/HTTPS (or localhost).
+- Cached assets (defined in `ASSETS`):
+  - `./`
+  - `./index.html`
+  - `./chart.js`
+  - `./xlsx.js`
+  - `./manifest.json`
+  - `./icon.svg`
+  - `./icon-192.png`
+  - `./icon-512.png`
 - Fetch strategy:
-  - On 4G or WiFi, the SW tries the network first and updates the cache if the network responds.
-  - On 3G/2G or offline, the SW serves from cache first.
-- When a new SW is waiting and the connection is 4G/WiFi, the app shows a banner with Update/Later buttons. The Update button tells the waiting SW to `skipWaiting()` and reloads the page.
-- The "Force update" button on the home screen only runs `registration.update()` when the connection is 4G/WiFi; otherwise it shows an error toast.
+  - On WiFi / 4G: network first; updates cache if network responds.
+  - On 3G/2G or offline: cache first; falls back to a 503 response if missing.
+- When a new Service Worker is waiting and the connection is good, an update banner appears with **Update** / **Later** buttons. **Update** calls `skipWaiting()` and reloads the page.
+- The **Force update** button on the home screen calls `registration.update()` only on WiFi / 4G; otherwise it shows an error toast.
 
-## Releasing a new version
+## Development conventions and code style
 
-To release an update that clients will actually download:
+- No linting or formatting tools are configured.
+- Keep the repository root clean; add new tools as subdirectories unless the project scope changes.
+- Code is plain JavaScript with some Spanish variable names (`presio`, `pra`, `pozo`, `humedad`, etc.) because the domain is geotechnical work in Spanish-speaking contexts. The `AGENTS.md` file is kept in English to match the existing documentation convention.
+- UI text is bilingual via the `T` object and `data-key` attributes. Add new labels to both `es` and `en` objects.
+- Numeric parsing is centralized in `parseNum()`, which accepts both `.` and `,` as decimal separators.
+- Number formatting for display uses `fmt()`; totals use a comma-decimal format.
 
-1. Edit `index.html` and bump `APP_VERSION` and `SW_VERSION` (e.g., `1.0.0` → `1.0.1`).
-2. Edit `sw.js` and bump `CACHE_NAME` to match (e.g., `campolab-v1.0.1`).
-3. Test the app over HTTP/localhost.
-4. Commit and push; the new SW will be fetched on the next 4G/WiFi visit.
+## Testing strategy
 
-If you only change `index.html` but not `CACHE_NAME`, returning clients may continue using the old cached HTML.
+- **Manual browser testing** is the primary verification method.
+- Recommended checks:
+  1. Serve the repo locally and open it in a browser.
+  2. Create, save, edit, and delete tests in both modules.
+  3. Switch language and verify all visible labels update.
+  4. Enter known data and compare pressuremeter calculations and PRA results against the reference Excel workbook.
+  5. Trigger the P-V graph and confirm points match `V_corregido` / `P_corregido`.
+  6. Test offline behavior: after first load, disable the network and reload; the app should still work.
+  7. Test the update flow by bumping `CACHE_NAME` and reloading.
+
+## Security and deployment considerations
+
+- The app is entirely client-side. There is no authentication, authorization, or encryption of saved data.
+- `localStorage` content is stored in plain text on the device. Do not store sensitive or confidential project data without additional protection.
+- Service Workers require a secure origin (HTTPS in production, `localhost` for development).
+- The app uses `innerHTML` in several places. Saved test names are escaped via `escapeHtml()`, but any new dynamic HTML generation should be reviewed for XSS, especially when inserting user input.
+- The Excel workbook in `PRA/` is macro-enabled (`.xlsm`). Do not rename it to `.xlsx` or macros will be stripped. Only open it from trusted sources.
+- Deployment is static-file hosting of the repository root. Any CDN or static host (GitHub Pages, Netlify, etc.) works as long as HTTPS is available.
 
 ## Working on the Excel workbook
 
-- The `.xlsm` file is a binary macro-enabled workbook. Do not rename it to `.xlsx` or macros will be stripped.
-- Sheets named `PRA-3` and `PRA-3Respaldo` suggest one is a backup/copy of the other; review both before editing formulas or layouts.
-- `LISTAS` contains the water-density lookup table by temperature (15.0 °C to 30.9 °C). Check it before modifying the water-density lookup in the app.
-
-## General conventions
-
-- No tests, lint, or formatter are configured. Verify changes by serving the HTML over HTTP and opening it in a browser, or inspecting the workbook in Excel.
-- Keep the root clean: only add new tools as subdirectories; do not add a root build file unless the project scope changes.
-- To test the Service Worker locally, run a simple static server in the repository root and open `http://localhost:PORT/`.
+- `PRA/13. Hoja auxiliar (PRA) V.0.xlsm` is a binary macro-enabled workbook.
+- Sheets include `PRA-1`, `PRA-2`, `PRA-3`, `PRA-3Respaldo`, and `LISTAS`.
+- `LISTAS` contains the water-density-by-temperature lookup table (15.0 °C to 30.9 °C). Update this table before changing the water-density logic in the app.
+- `PRA-3` and `PRA-3Respaldo` appear to be a working sheet and a backup/copy; review both before editing formulas or layouts.
