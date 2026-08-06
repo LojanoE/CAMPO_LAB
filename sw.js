@@ -1,4 +1,4 @@
-const CACHE_NAME = 'campolab-v1.1.4';
+const CACHE_NAME = 'campolab-v1.1.6';
 const ASSETS = [
   './',
   './index.html',
@@ -12,10 +12,11 @@ const ASSETS = [
 
 function isGoodConnection() {
   const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-  if (!conn) return false;
-  if (conn.type === 'wifi') return true;
-  if (conn.effectiveType === '4g') return true;
-  return false;
+  if (!conn) return true;
+  if (conn.saveData) return false;
+  if (conn.effectiveType) return !['slow-2g', '2g'].includes(conn.effectiveType);
+  if (conn.type === 'cellular') return false;
+  return true;
 }
 
 self.addEventListener('install', event => {

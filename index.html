@@ -353,6 +353,36 @@
             font-size: 0.95rem; font-weight: 700; color: var(--water-dark); margin-top: 6px;
             font-family: 'JetBrains Mono', monospace;
         }
+        .pra-group-header {
+            display: flex; align-items: center; gap: 8px;
+            cursor: pointer; user-select: none;
+            border: 2px solid var(--ink);
+            background: var(--paper);
+            border-radius: var(--radius);
+            padding: 10px 12px; margin-bottom: 8px;
+            font-weight: 700; font-size: 0.9rem;
+            box-shadow: var(--shadow-hard-sm);
+        }
+        .pra-group-header:active { transform: translate(2px, 2px); box-shadow: none; }
+        .pra-chevron {
+            font-size: 0.8rem; flex-shrink: 0;
+            transition: transform 0.2s ease;
+        }
+        .pra-chevron.collapsed { transform: rotate(-90deg); }
+        .pra-total {
+            margin-left: auto; flex-shrink: 0;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--water-dark); font-size: 0.85rem;
+        }
+        .pra-group-body.collapsed { display: none; }
+        .pra-note {
+            font-style: italic; font-size: 0.78rem; line-height: 1.45;
+            color: #555;
+            background: var(--paper);
+            border-left: 4px solid var(--orange);
+            padding: 8px 10px; border-radius: 0 var(--radius) var(--radius) 0;
+            margin: 0 0 8px 0;
+        }
 
         /* Home cards */
         .home-cards {
@@ -952,35 +982,62 @@
             <div class="card">
                 <div class="card-title">&#128167; <span data-key="praData">Datos del Ensayo</span></div>
                 <div class="form-grid">
-                    <div class="form-group" style="grid-column:1/-1">
-                        <label data-key="praAguaInicialPartials">Agua Inicial (pesos parciales)</label>
-                        <div id="waterInicialPartials"></div>
-                        <button class="btn-secondary" onclick="addPraPartial('waterInicial')">+ <span data-key="praAddPartial">Agregar</span></button>
-                        <div class="total-line"><span data-key="praPartialTotal">Total:</span> <span id="praWaterInicialTotal">0</span> kg</div>
+                    <div class="form-group pra-group" style="grid-column:1/-1">
+                        <div class="pra-group-header" onclick="togglePraGroup('waterInicial')">
+                            <span class="pra-chevron collapsed">&#9660;</span>
+                            <span data-key="praAguaInicialPartials">Agua Inicial (pesos parciales)</span>
+                            <span class="pra-total"><span data-key="praPartialTotal">Total:</span> <span id="praWaterInicialTotal">0</span> kg</span>
+                        </div>
+                        <div class="pra-group-body collapsed">
+                            <div id="waterInicialPartials"></div>
+                            <button class="btn-secondary" onclick="addPraPartial('waterInicial')">+ <span data-key="praAddPartial">Agregar</span></button>
+                        </div>
                     </div>
-                    <div class="form-group" style="grid-column:1/-1">
-                        <label data-key="praAguaSobrantePartials">Agua Sobrante (pesos parciales)</label>
-                        <div id="waterSobrantePartials"></div>
-                        <button class="btn-secondary" onclick="addPraPartial('waterSobrante')">+ <span data-key="praAddPartial">Agregar</span></button>
-                        <div class="total-line"><span data-key="praPartialTotal">Total:</span> <span id="praWaterSobranteTotal">0</span> kg</div>
+                    <div class="form-group pra-group" style="grid-column:1/-1">
+                        <div class="pra-group-header" onclick="togglePraGroup('waterSobrante')">
+                            <span class="pra-chevron collapsed">&#9660;</span>
+                            <span data-key="praAguaSobrantePartials">Agua Sobrante (pesos parciales)</span>
+                            <span class="pra-total"><span data-key="praPartialTotal">Total:</span> <span id="praWaterSobranteTotal">0</span> kg</span>
+                        </div>
+                        <div class="pra-group-body collapsed">
+                            <div id="waterSobrantePartials"></div>
+                            <button class="btn-secondary" onclick="addPraPartial('waterSobrante')">+ <span data-key="praAddPartial">Agregar</span></button>
+                        </div>
                     </div>
-                    <div class="form-group" style="grid-column:1/-1">
-                        <label data-key="praAguaPartials">Agua Agregada (pesos parciales)</label>
-                        <div id="waterPartials"></div>
-                        <button class="btn-secondary" onclick="addPraPartial('water')">+ <span data-key="praAddPartial">Agregar</span></button>
-                        <div class="total-line"><span data-key="praPartialTotal">Total:</span> <span id="praWaterTotal">0</span> kg</div>
+                    <div class="form-group pra-group" style="grid-column:1/-1">
+                        <div class="pra-group-header" onclick="togglePraGroup('water')">
+                            <span class="pra-chevron collapsed">&#9660;</span>
+                            <span data-key="praAguaPartials">Agua Agregada (pesos parciales)</span>
+                            <span class="pra-total"><span data-key="praPartialTotal">Total:</span> <span id="praWaterTotal">0</span> kg</span>
+                        </div>
+                        <div class="pra-group-body collapsed">
+                            <div id="waterPartials"></div>
+                            <button class="btn-secondary" onclick="addPraPartial('water')">+ <span data-key="praAddPartial">Agregar</span></button>
+                        </div>
                     </div>
-                    <div class="form-group" style="grid-column:1/-1">
-                        <label data-key="praSueloPartials">Suelo Húmedo (pesos parciales)</label>
-                        <div id="sueloPartials"></div>
-                        <button class="btn-secondary" onclick="addPraPartial('suelo')">+ <span data-key="praAddPartial">Agregar</span></button>
-                        <div class="total-line"><span data-key="praPartialTotal">Total:</span> <span id="praSueloTotal">0</span> kg</div>
+                    <div class="form-group pra-group" style="grid-column:1/-1">
+                        <div class="pra-group-header" onclick="togglePraGroup('suelo')">
+                            <span class="pra-chevron collapsed">&#9660;</span>
+                            <span data-key="praSueloPartials">Suelo Húmedo (pesos parciales)</span>
+                            <span class="pra-total"><span data-key="praPartialTotal">Total:</span> <span id="praSueloTotal">0</span> kg</span>
+                        </div>
+                        <p class="pra-note" data-key="praSueloNote">Nota: masa total del suelo húmedo excavado del pozo, incluyendo la roca.</p>
+                        <div class="pra-group-body collapsed">
+                            <div id="sueloPartials"></div>
+                            <button class="btn-secondary" onclick="addPraPartial('suelo')">+ <span data-key="praAddPartial">Agregar</span></button>
+                        </div>
                     </div>
-                    <div class="form-group" style="grid-column:1/-1">
-                        <label data-key="praRocaPartials">Roca (pesos parciales)</label>
-                        <div id="rocaPartials"></div>
-                        <button class="btn-secondary" onclick="addPraPartial('roca')">+ <span data-key="praAddPartial">Agregar</span></button>
-                        <div class="total-line"><span data-key="praPartialTotal">Total:</span> <span id="praRocaTotal">0</span> kg</div>
+                    <div class="form-group pra-group" style="grid-column:1/-1">
+                        <div class="pra-group-header" onclick="togglePraGroup('roca')">
+                            <span class="pra-chevron collapsed">&#9660;</span>
+                            <span data-key="praRocaPartials">Roca (pesos parciales)</span>
+                            <span class="pra-total"><span data-key="praPartialTotal">Total:</span> <span id="praRocaTotal">0</span> kg</span>
+                        </div>
+                        <p class="pra-note" data-key="praRocaNote">Nota: la masa de roca se descuenta del suelo húmedo y del volumen de agua en los cálculos.</p>
+                        <div class="pra-group-body collapsed">
+                            <div id="rocaPartials"></div>
+                            <button class="btn-secondary" onclick="addPraPartial('roca')">+ <span data-key="praAddPartial">Agregar</span></button>
+                        </div>
                     </div>
                     <div class="form-group full">
                         <label data-key="praHumedad">Humedad (%)</label>
@@ -1051,9 +1108,9 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const APP_VERSION = '1.1.4';
-        const SW_VERSION = 'campolab-v1.1.4';
+        const APP_VERSION = '1.1.6';
 
+        const SW_VERSION = 'campolab-v1.1.6';
         // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
         const WATER_DENSITY_TABLE = {};
         const waterDensityBase = {
@@ -1095,6 +1152,10 @@
                 updateLater: "Más tarde",
                 updateNoSignal: "Señal insuficiente para actualizar. Se usa la caché.",
                 updateChecking: "Verificando actualización...",
+                updateAlready: "La aplicación ya está actualizada.",
+                updateFound: "Actualización encontrada, aplicando...",
+                updateError: "Error al comprobar la actualización.",
+                updateNoSW: "Service Worker no registrado.",
                 mainTitle: "ENSAYO DE PRESIÓMETRO",
                 subtitle: "Hoja de Campo",
                 generalInfo: "Información General",
@@ -1161,6 +1222,8 @@
                 praAguaPartials: "Agua Agregada (pesos parciales)",
                 praSueloPartials: "Suelo Húmedo (pesos parciales)",
                 praRocaPartials: "Roca (pesos parciales)",
+                praSueloNote: "Nota: masa total del suelo húmedo excavado del pozo, incluyendo la roca.",
+                praRocaNote: "Nota: la masa de roca se descuenta del suelo húmedo y del volumen de agua en los cálculos.",
                 praAddPartial: "Agregar",
                 praPartialTotal: "Total:",
                 praHumedad: "Humedad (%)",
@@ -1189,6 +1252,10 @@
                 updateLater: "Later",
                 updateNoSignal: "Signal too weak to update. Using cache.",
                 updateChecking: "Checking for update...",
+                updateAlready: "The app is already up to date.",
+                updateFound: "Update found, applying...",
+                updateError: "Error checking for update.",
+                updateNoSW: "Service Worker not registered.",
                 mainTitle: "PRESSUREMETER TEST",
                 subtitle: "Field Sheet",
                 generalInfo: "General Information",
@@ -1255,6 +1322,8 @@
                 praAguaPartials: "Added Water (partial weights)",
                 praSueloPartials: "Wet Soil (partial weights)",
                 praRocaPartials: "Rock (partial weights)",
+                praSueloNote: "Note: total wet soil mass excavated from the pit, including any rock.",
+                praRocaNote: "Note: rock mass is deducted from the wet soil and water volume in the calculations.",
                 praAddPartial: "Add",
                 praPartialTotal: "Total:",
                 praHumedad: "Moisture (%)",
@@ -1938,6 +2007,16 @@
             updatePraPartials();
         }
 
+        function togglePraGroup(type) {
+            const info = PRA_PARTIALS[type];
+            if (!info) return;
+            const container = document.getElementById(info.container);
+            if (!container) return;
+            container.parentElement.classList.toggle('collapsed');
+            const chevron = container.closest('.pra-group').querySelector('.pra-chevron');
+            if (chevron) chevron.classList.toggle('collapsed');
+        }
+
         function removePraPartial(btn) {
             const row = btn.closest('.partial-row');
             if (row) row.remove();
@@ -2293,10 +2372,11 @@
         // ==================== SERVICE WORKER ====================
         function isGoodConnection() {
             const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-            if (!conn) return false;
-            if (conn.type === 'wifi') return true;
-            if (conn.effectiveType === '4g') return true;
-            return false;
+            if (!conn) return true; // Sin API → asumir buena conexión
+            if (conn.saveData) return false;
+            if (conn.effectiveType) return !['slow-2g', '2g'].includes(conn.effectiveType);
+            if (conn.type === 'cellular') return false;
+            return true;
         }
 
         function registerSW() {
@@ -2330,7 +2410,7 @@
 
         function forceUpdateApp() {
             if (!('serviceWorker' in navigator)) {
-                showToast('Service Worker no disponible', 'error');
+                showToast(T[lang].updateNoSW, 'error');
                 return;
             }
             if (!isGoodConnection()) {
@@ -2338,8 +2418,46 @@
                 return;
             }
             showToast(T[lang].updateChecking, 'info');
+            let newFound = false;
+            let updateCheckTimer = null;
             navigator.serviceWorker.getRegistration().then(reg => {
-                if (reg) reg.update();
+                if (!reg) {
+                    showToast(T[lang].updateNoSW, 'error');
+                    return;
+                }
+                const applyAndReload = (worker) => {
+                    if (newFound) return;
+                    newFound = true;
+                    if (updateCheckTimer) clearTimeout(updateCheckTimer);
+                    showToast(T[lang].updateFound, 'info');
+                    if (worker && navigator.serviceWorker.controller) {
+                        worker.postMessage({ type: 'SKIP_WAITING' });
+                    }
+                    setTimeout(() => window.location.reload(), 500);
+                };
+                const watchWorker = (worker) => {
+                    if (!worker) return;
+                    worker.addEventListener('statechange', () => {
+                        if (worker.state === 'installed') applyAndReload(worker);
+                    });
+                    // If already installed (waiting state), apply immediately
+                    if (worker.state === 'installed') applyAndReload(worker);
+                };
+                if (reg.waiting) {
+                    applyAndReload(reg.waiting);
+                    return;
+                }
+                if (reg.installing) watchWorker(reg.installing);
+                reg.addEventListener('updatefound', () => watchWorker(reg.installing));
+                return reg.update();
+            }).then(() => {
+                if (newFound) return;
+                updateCheckTimer = setTimeout(() => {
+                    if (!newFound) showToast(T[lang].updateAlready, 'success');
+                }, 2500);
+            }).catch(err => {
+                console.error('Force update failed', err);
+                showToast(T[lang].updateError, 'error');
             });
         }
     </script>
