@@ -255,6 +255,22 @@
         .field-table .col-pm { background: rgba(46,111,142,0.1); font-weight: 700; }
         .field-table .col-pm input { background: transparent; font-weight: 700; color: var(--water-dark); font-size: 1rem; }
         .field-table .col-vol input { font-size: 0.95rem; }
+        .field-table td.gran-ret {
+            color: var(--orange);
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+        .field-table td.gran-pas {
+            color: var(--water-dark);
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+        .field-table .gran-abertura:disabled {
+            opacity: 0.6;
+            background: var(--paper);
+        }
         .field-table .row-num { font-size: 0.72rem; color: var(--cement); font-weight: 700; width: 30px; font-family: 'JetBrains Mono', monospace; }
 
         /* Calculated results table */
@@ -749,6 +765,11 @@
                     <div class="home-card-title" data-key="cardPra">Densidad PRA</div>
                     <div class="home-card-desc" data-key="cardPraDesc">Reemplazo con agua</div>
                 </div>
+                <div class="home-card" onclick="openGran()">
+                    <div class="home-card-icon">&#9878;</div>
+                    <div class="home-card-title" data-key="cardGran">Granulometría</div>
+                    <div class="home-card-desc" data-key="cardGranDesc">Análisis por tamizado</div>
+                </div>
             </div>
 
             <div class="card">
@@ -1076,9 +1097,72 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- FABs -->
+        <!-- GRANULOMETRÍA VIEW -->
+        <div id="granView" class="view">
+            <div class="header header-nav">
+                <button class="back-btn" onclick="goHome()">&#8592; <span data-key="btnBack">Volver</span></button>
+                <h1 data-key="granTitle">GRANULOMETRÍA</h1>
+                <div style="width:60px"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">&#128203; <span data-key="granGeneralInfo">Información General</span></div>
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label data-key="projectName">Proyecto</label>
+                        <input type="text" id="granProyecto" placeholder="Nombre del proyecto" oninput="markChanged()">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="granMuestra">Muestra / Ensayo N°</label>
+                        <input type="text" id="granMuestra" placeholder="Ej: M-1" oninput="markChanged()">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="testDate">Fecha</label>
+                        <input type="date" id="granDate" onchange="markChanged()">
+                    </div>
+                    <div class="form-group full">
+                        <label data-key="granTipoMaterial">Tipo de Material</label>
+                        <input type="text" id="granTipoMaterial" placeholder="Ej: Arena limosa (SM)" oninput="markChanged()">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">&#9878; <span data-key="granData">Datos de Tamizado</span></div>
+                <div class="table-scroll">
+                    <table class="field-table">
+                        <thead>
+                            <tr>
+                                <th style="width:26px">#</th>
+                                <th data-key="granTamiz">Tamiz</th>
+                                <th data-key="granAbertura">Abertura<br><small>mm</small></th>
+                                <th data-key="granPesoParcial">Peso Parcial<br><small>g</small></th>
+                                <th data-key="granPesoAcumulado">Peso Acumulado<br><small>g</small></th>
+                                <th data-key="granPctRetenido">% Retenido</th>
+                                <th data-key="granPctPasante">% Pasante</th>
+                            </tr>
+                        </thead>
+                        <tbody id="granBody"></tbody>
+                    </table>
+                </div>
+                <div class="total-line"><span data-key="granTotal">Peso Total</span>: <span id="granTotal">0</span> g</div>
+                <div class="btn-row">
+                    <button class="btn btn-success" onclick="calcGran()">&#128295; <span data-key="btnCalculate">Calcular</span></button>
+                    <button class="btn btn-outline" onclick="clearGranRows()">&#128260; <span data-key="timerReset">Reiniciar</span></button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">&#128200; <span data-key="granCurva">Curva Granulométrica</span></div>
+                <div class="chart-container"><canvas id="granChart"></canvas></div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="downloadGranChart()">&#128229; <span data-key="granBtnPng">PNG</span></button>
+                    <button class="btn btn-accent" onclick="exportGranExcel()">&#128196; <span data-key="granBtnExcel">Excel</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="fab-container">
         <button class="fab fab-home" onclick="goHome()" title="Inicio">&#8962;<span class="fab-label" data-key="fabHome">Inicio</span></button>
         <button class="fab fab-save" onclick="saveCurrent()" title="Guardar">&#128190;<span class="fab-label" data-key="fabSave">Guardar</span></button>
@@ -1108,9 +1192,9 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const APP_VERSION = '1.1.7';
+        const APP_VERSION = '1.1.8';
 
-        const SW_VERSION = 'campolab-v1.1.7';
+        const SW_VERSION = 'campolab-v1.1.8';
         // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
         const WATER_DENSITY_TABLE = {};
         const waterDensityBase = {
@@ -1233,7 +1317,28 @@
                 praVolPozo: "Volumen Pozo (cm³)",
                 praDensidadHumeda: "Densidad Húmeda (g/cm³)",
                 praDensidadSeca: "Densidad Seca (g/cm³)",
-                praCompactacion: "Compactación (%)"
+                praCompactacion: "Compactación (%)",
+                cardGran: "Granulometría",
+                cardGranDesc: "Análisis por tamizado",
+                granTitle: "GRANULOMETRÍA",
+                granGeneralInfo: "Información General",
+                granMuestra: "Muestra / Ensayo N°",
+                granTipoMaterial: "Tipo de Material",
+                granData: "Datos de Tamizado",
+                granTamiz: "Tamiz",
+                granAbertura: "Abertura\nmm",
+                granPesoParcial: "Peso Parcial\ng",
+                granPesoAcumulado: "Peso Acumulado\ng",
+                granPctRetenido: "% Retenido",
+                granPctPasante: "% Pasante",
+                granBandeja: "Bandeja",
+                granTotal: "Peso Total",
+                granCurva: "Curva Granulométrica",
+                granXAxis: "Abertura de tamiz (mm)",
+                granYAxis: "% Pasante acumulado",
+                granBtnPng: "PNG",
+                granBtnExcel: "Excel",
+                granNoData: "Faltan pesos para graficar"
             },
             en: {
                 pageTitle: "Campo Lab",
@@ -1333,7 +1438,28 @@
                 praVolPozo: "Pit Volume (cm³)",
                 praDensidadHumeda: "Wet Density (g/cm³)",
                 praDensidadSeca: "Dry Density (g/cm³)",
-                praCompactacion: "Compaction (%)"
+                praCompactacion: "Compaction (%)",
+                cardGran: "Granulometry",
+                cardGranDesc: "Sieve analysis",
+                granTitle: "GRANULOMETRY",
+                granGeneralInfo: "General Information",
+                granMuestra: "Sample / Test No.",
+                granTipoMaterial: "Material Type",
+                granData: "Sieve Data",
+                granTamiz: "Sieve",
+                granAbertura: "Opening\nmm",
+                granPesoParcial: "Partial Wt.\ng",
+                granPesoAcumulado: "Cumulative Wt.\ng",
+                granPctRetenido: "% Retained",
+                granPctPasante: "% Passing",
+                granBandeja: "Pan",
+                granTotal: "Total Weight",
+                granCurva: "Gradation Curve",
+                granXAxis: "Sieve opening (mm)",
+                granYAxis: "% Passing",
+                granBtnPng: "PNG",
+                granBtnExcel: "Excel",
+                granNoData: "Enter weights to plot"
             }
         };
 
@@ -1343,8 +1469,11 @@
 
         let presioTests = [];
         let praTests = [];
+        let granTests = [];
         let currentPresioId = null;
         let currentPraId = null;
+        let currentGranId = null;
+        let granChart = null;
 
         let updateWaitingSW = null;
 
@@ -1447,6 +1576,10 @@
             if (rawPra) {
                 try { praTests = JSON.parse(rawPra); } catch(e) {}
             }
+            const rawGran = localStorage.getItem('granTests');
+            if (rawGran) {
+                try { granTests = JSON.parse(rawGran); } catch(e) {}
+            }
             const rawLang = localStorage.getItem('lang');
             if (rawLang) lang = rawLang;
         }
@@ -1454,6 +1587,7 @@
         function saveStorage() {
             localStorage.setItem('presioTests', JSON.stringify(presioTests));
             localStorage.setItem('praTests', JSON.stringify(praTests));
+            localStorage.setItem('granTests', JSON.stringify(granTests));
             localStorage.setItem('lang', lang);
         }
 
@@ -1466,6 +1600,8 @@
                 savePresio();
             } else if (document.getElementById('praView').classList.contains('active')) {
                 savePra();
+            } else if (document.getElementById('granView').classList.contains('active')) {
+                saveGran();
             }
             changed = false;
             updateStatus();
@@ -1823,7 +1959,12 @@
         }
 
         function updateCounts() {
-            const n = document.getElementById('tableBody').children.length;
+            let n = 0;
+            if (document.getElementById('presioView').classList.contains('active')) {
+                n = document.getElementById('tableBody').children.length;
+            } else if (document.getElementById('granView').classList.contains('active')) {
+                n = document.getElementById('granBody').children.length;
+            }
             document.getElementById('recordCount').textContent = `${n} ${T[lang].rows}`;
         }
 
@@ -2196,6 +2337,316 @@
             return { volTotal, volAnillo, volPozo, densidadHumeda, densidadSeca, compactacion };
         }
 
+        // ==================== GRANULOMETRÍA ====================
+        const GRAN_SIEVES = [
+            { apertura: 304.8, tamiz: '12 in' },
+            { apertura: 254.0, tamiz: '10 in' },
+            { apertura: 203.2, tamiz: '8 in' },
+            { apertura: 152.4, tamiz: '6 in' },
+            { apertura: 127.0, tamiz: '5 in' },
+            { apertura: 101.6, tamiz: '4 in' },
+            { apertura: 76.2, tamiz: '3 in' },
+            { apertura: 50.8, tamiz: '2 in' },
+            { apertura: 38.1, tamiz: '1\u00bd in' },
+            { apertura: 25.4, tamiz: '1 in' },
+            { apertura: 19.0, tamiz: '\u00be in' },
+            { apertura: 9.5, tamiz: '\u215c in' },
+            { apertura: 4.75, tamiz: 'N\u00b04' },
+            { apertura: 2.00, tamiz: 'N\u00b010' },
+            { apertura: 0.850, tamiz: 'N\u00b020' },
+            { apertura: 0.425, tamiz: 'N\u00b040' },
+            { apertura: 0.250, tamiz: 'N\u00b060' },
+            { apertura: 0.150, tamiz: 'N\u00b0100' },
+            { apertura: 0.106, tamiz: 'N\u00b0140' },
+            { apertura: 0.075, tamiz: 'N\u00b0200' },
+            { apertura: 0, tamiz: '' }
+        ];
+
+        function openGran() {
+            currentGranId = null;
+            clearGranForm();
+            initGranDate();
+            changed = false;
+            updateStatus();
+            showView('granView');
+            calcGran();
+        }
+
+        function initGranDate() {
+            const d = document.getElementById('granDate');
+            if (!d.value) d.value = new Date().toISOString().split('T')[0];
+        }
+
+        function clearGranForm() {
+            document.getElementById('granProyecto').value = '';
+            document.getElementById('granMuestra').value = '';
+            document.getElementById('granDate').value = '';
+            document.getElementById('granTipoMaterial').value = '';
+            renderGranRows();
+            document.getElementById('granTotal').textContent = '0';
+            if (granChart) { granChart.destroy(); granChart = null; }
+        }
+
+        function clearGranRows() {
+            renderGranRows();
+            document.getElementById('granTotal').textContent = '0';
+            if (granChart) { granChart.destroy(); granChart = null; }
+        }
+
+        function renderGranRows(rowsData) {
+            const body = document.getElementById('granBody');
+            body.innerHTML = '';
+            const data = Array.isArray(rowsData) ? rowsData : [];
+            GRAN_SIEVES.forEach((s, i) => {
+                const d = data[i] || {};
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="row-num">${i + 1}</td>
+                    <td>${s.apertura === 0 ? escapeHtml(T[lang].granBandeja) : escapeHtml(s.tamiz)}</td>
+                    <td class="col-vol"><input class="gran-abertura" type="text" inputmode="decimal" value="${d.abertura != null && d.abertura !== '' ? d.abertura : (s.apertura || '')}" ${s.apertura === 0 ? 'disabled' : ''} oninput="calcGran()"></td>
+                    <td><input class="gran-parcial" type="text" inputmode="decimal" value="${d.parcial != null ? d.parcial : ''}" oninput="calcGran()" placeholder="0"></td>
+                    <td><input class="gran-acumulado" type="text" inputmode="decimal" value="${d.acumulado != null ? d.acumulado : ''}" oninput="calcGran()" placeholder="0"></td>
+                    <td class="gran-ret">-</td>
+                    <td class="gran-pas">-</td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        function calcGran() {
+            const rows = document.querySelectorAll('#granBody tr');
+            let running = 0;
+            rows.forEach(tr => {
+                const parcial = parseNum(tr.querySelector('.gran-parcial').value) || 0;
+                running += parcial;
+                if (parcial && !parseNum(tr.querySelector('.gran-acumulado').value)) {
+                    tr.querySelector('.gran-acumulado').value = running;
+                }
+            });
+            const res = calcGranResults();
+            document.getElementById('granTotal').textContent = res.total > 0 ? res.total.toFixed(1) : '0';
+            rows.forEach((tr, i) => {
+                const r = res.rows[i];
+                tr.querySelector('.gran-ret').textContent = r.pctRetenido != null ? r.pctRetenido.toFixed(2) : '-';
+                tr.querySelector('.gran-pas').textContent = r.pctPasante != null ? r.pctPasante.toFixed(2) : '-';
+            });
+            drawGranChart();
+            markChanged();
+            return res;
+        }
+
+        function calcGranResults() {
+            const rows = Array.from(document.querySelectorAll('#granBody tr')).map(tr => ({
+                abertura: parseNum(tr.querySelector('.gran-abertura').value),
+                parcial: parseNum(tr.querySelector('.gran-parcial').value) || 0,
+                acumulado: parseNum(tr.querySelector('.gran-acumulado').value) || 0
+            }));
+            let total = rows.reduce((s, r) => s + r.parcial, 0);
+            if (!total) total = Math.max(0, ...rows.map(r => r.acumulado));
+            const detailed = [];
+            let running = 0;
+            rows.forEach(r => {
+                running += r.parcial;
+                const rawAcum = r.acumulado;
+                const acum = rawAcum > 0 ? rawAcum : running;
+                detailed.push({
+                    abertura: r.abertura,
+                    parcial: r.parcial,
+                    acumulado: acum,
+                    hasWeight: r.parcial > 0 || rawAcum > 0,
+                    pctRetenido: (total > 0 && r.parcial > 0) ? r.parcial / total * 100 : null,
+                    pctPasante: total > 0 ? Math.max(0, Math.min(100, 100 - acum / total * 100)) : null
+                });
+            });
+            return { total, rows: detailed };
+        }
+
+        function drawGranChart() {
+            const res = calcGranResults();
+            const pts = res.rows
+                .filter(r => r.abertura > 0 && r.pctPasante != null && r.hasWeight)
+                .sort((a, b) => a.abertura - b.abertura)
+                .map(r => ({ x: r.abertura, y: r.pctPasante }));
+            const ctx = document.getElementById('granChart');
+            if (!ctx) return;
+            const color = '#e85d04';
+            if (granChart) granChart.destroy();
+            if (!pts.length) {
+                granChart = new Chart(ctx, {
+                    type: 'line',
+                    data: { datasets: [{ label: T[lang].granCurva, data: [], showLine: false }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+                return;
+            }
+            granChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: T[lang].granCurva,
+                        data: pts,
+                        borderColor: color,
+                        backgroundColor: 'transparent',
+                        borderWidth: 1.8,
+                        pointRadius: 3,
+                        pointBackgroundColor: color,
+                        pointBorderColor: color,
+                        pointHoverRadius: 5,
+                        pointHoverBackgroundColor: color,
+                        pointHoverBorderColor: 'white',
+                        pointHoverBorderWidth: 1.5,
+                        showLine: true,
+                        fill: false,
+                        tension: 0,
+                        spanGaps: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,.9)',
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                title: () => '',
+                                label(context) {
+                                    try {
+                                        const pt = context.raw;
+                                        const sieve = GRAN_SIEVES.find(s => s.apertura > 0 && Math.abs(s.apertura - pt.x) < 0.001);
+                                        const name = sieve ? sieve.tamiz : pt.x.toFixed(3) + ' mm';
+                                        return name + '  |  % pasante: ' + pt.y.toFixed(2) + '%';
+                                    } catch (e) { return '—'; }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'logarithmic',
+                            reverse: true,
+                            min: 0.05,
+                            max: 400,
+                            title: { display: true, text: T[lang].granXAxis, font: { size: 12, weight: 'bold' }, color: '#1e293b' },
+                            ticks: { callback: v => v >= 1 ? v.toString() : v.toFixed(v >= 0.1 ? 3 : 4) },
+                            grid: { color: 'rgba(0,0,0,.05)' }
+                        },
+                        y: {
+                            min: 0,
+                            max: 100,
+                            title: { display: true, text: T[lang].granYAxis, font: { size: 12, weight: 'bold' }, color: '#1e293b' },
+                            ticks: { callback: v => v + '%', stepSize: 10 },
+                            grid: { color: 'rgba(0,0,0,.06)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function granFileName(ext) {
+            let name = (document.getElementById('granMuestra').value || 'granulometria').replace(/[\\/:*?"<>|]/g, '_');
+            const date = document.getElementById('granDate').value || new Date().toISOString().split('T')[0];
+            return 'Granulo_' + name + '_' + date + '.' + ext;
+        }
+
+        function downloadGranChart() {
+            if (!granChart || !granChart.data.datasets[0].data.length) {
+                showToast(T[lang].granNoData, 'error');
+                return;
+            }
+            const a = document.createElement('a');
+            a.href = granChart.toBase64Image('image/png', 1);
+            a.download = granFileName('png');
+            a.click();
+        }
+
+        function exportGranExcel() {
+            if (typeof XLSX === 'undefined') {
+                showToast(lang === 'es' ? 'Librería Excel no cargada' : 'Excel library not loaded', 'error');
+                return;
+            }
+            const g = {
+                proyecto: document.getElementById('granProyecto').value,
+                muestra: document.getElementById('granMuestra').value,
+                fecha: document.getElementById('granDate').value,
+                material: document.getElementById('granTipoMaterial').value
+            };
+            const l = lang === 'es' ? {
+                proyecto: 'Proyecto', muestra: 'Muestra / Ensayo N°', fecha: 'Fecha', material: 'Tipo de Material'
+            } : {
+                proyecto: 'Project', muestra: 'Sample / Test No.', fecha: 'Date', material: 'Material Type'
+            };
+            const generalData = [
+                [l.proyecto, g.proyecto],
+                [l.muestra, g.muestra],
+                [l.fecha, g.fecha],
+                [l.material, g.material]
+            ];
+            const res = calcGranResults();
+            const dataRows = [[
+                T[lang].granTamiz, T[lang].granAbertura, T[lang].granPesoParcial,
+                T[lang].granPesoAcumulado, T[lang].granPctRetenido, T[lang].granPctPasante
+            ]];
+            GRAN_SIEVES.forEach((s, i) => {
+                const r = res.rows[i];
+                dataRows.push([
+                    s.apertura === 0 ? T[lang].granBandeja : s.tamiz,
+                    s.apertura || '',
+                    r.parcial > 0 ? r.parcial : '',
+                    r.acumulado > 0 ? parseFloat(r.acumulado.toFixed(2)) : '',
+                    r.pctRetenido != null ? parseFloat(r.pctRetenido.toFixed(2)) : '',
+                    r.pctPasante != null ? parseFloat(r.pctPasante.toFixed(2)) : ''
+                ]);
+            });
+            dataRows.push([]);
+            dataRows.push([T[lang].granTotal, res.total > 0 ? parseFloat(res.total.toFixed(2)) : '']);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(generalData), 'General');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dataRows), 'Datos');
+            XLSX.writeFile(wb, granFileName('xlsx'));
+        }
+
+        function saveGran() {
+            const data = {
+                proyecto: document.getElementById('granProyecto').value,
+                muestra: document.getElementById('granMuestra').value,
+                date: document.getElementById('granDate').value,
+                tipoMaterial: document.getElementById('granTipoMaterial').value,
+                filas: Array.from(document.querySelectorAll('#granBody tr')).map(tr => ({
+                    abertura: tr.querySelector('.gran-abertura').value,
+                    parcial: tr.querySelector('.gran-parcial').value,
+                    acumulado: tr.querySelector('.gran-acumulado').value
+                }))
+            };
+            const res = calcGranResults();
+            const name = data.muestra || (lang === 'es' ? 'Granulometría' : 'Granulometry');
+            const date = data.date || new Date().toISOString().split('T')[0];
+            if (currentGranId) {
+                const idx = granTests.findIndex(t => t.id === currentGranId);
+                if (idx >= 0) granTests[idx] = { id: currentGranId, name, date, data, results: res };
+            } else {
+                currentGranId = generateId();
+                granTests.push({ id: currentGranId, name, date, data, results: res });
+            }
+            saveStorage();
+        }
+
+        function loadGranTest(id) {
+            const test = granTests.find(t => t.id === id);
+            if (!test) return;
+            currentGranId = id;
+            const d = test.data || {};
+            document.getElementById('granProyecto').value = d.proyecto || '';
+            document.getElementById('granMuestra').value = d.muestra || '';
+            document.getElementById('granDate').value = d.date || new Date().toISOString().split('T')[0];
+            document.getElementById('granTipoMaterial').value = d.tipoMaterial || '';
+            renderGranRows(Array.isArray(d.filas) ? d.filas : []);
+            calcGran();
+            showView('granView');
+        }
+
         function parseNum(str) {
             const s = str === null || str === undefined ? '' : String(str);
             const v = parseFloat(s.replace(',', '.'));
@@ -2213,7 +2664,8 @@
             list.innerHTML = '';
             const all = [
                 ...presioTests.map(t => ({ ...t, type: 'presio' })),
-                ...praTests.map(t => ({ ...t, type: 'pra' }))
+                ...praTests.map(t => ({ ...t, type: 'pra' })),
+                ...granTests.map(t => ({ ...t, type: 'gran' }))
             ].sort((a, b) => new Date(b.date) - new Date(a.date));
             if (!all.length) {
                 list.innerHTML = `<div class="empty-state">${T[lang].noTests}</div>`;
@@ -2223,16 +2675,23 @@
                 const item = document.createElement('div');
                 item.className = 'test-item';
                 let meta = '';
+                let icon = '&#128203;';
                 if (t.type === 'presio') {
                     meta = `${t.project || ''} &bull; ${t.date}`;
-                } else {
+                    icon = '&#128200;';
+                } else if (t.type === 'pra') {
                     const comp = t.results && t.results.compactacion ? t.results.compactacion.toFixed(2) + '%' : '-';
                     const ds = t.results && t.results.densidadSeca ? t.results.densidadSeca.toFixed(3) + ' g/cm³' : '-';
                     meta = `C: ${comp} &bull; DS: ${ds} &bull; ${t.date}`;
+                    icon = '&#128167;';
+                } else {
+                    const mat = t.data && t.data.tipoMaterial ? t.data.tipoMaterial : '';
+                    meta = `${mat} &bull; ${t.date}`;
+                    icon = '&#9878;';
                 }
                 item.innerHTML = `
                     <div class="test-info">
-                        <div class="test-name">${escapeHtml(t.name)} ${t.type === 'presio' ? '&#128200;' : '&#128167;'}</div>
+                        <div class="test-name">${escapeHtml(t.name)} ${icon}</div>
                         <div class="test-meta">${meta}</div>
                     </div>
                     <div class="test-actions">
@@ -2252,15 +2711,18 @@
 
         function editTest(type, id) {
             if (type === 'presio') loadPresioTest(id);
-            else loadPraTest(id);
+            else if (type === 'pra') loadPraTest(id);
+            else loadGranTest(id);
         }
 
         function deleteTest(type, id) {
             if (!confirm(lang === 'es' ? '¿Eliminar este ensayo?' : 'Delete this test?')) return;
             if (type === 'presio') {
                 presioTests = presioTests.filter(t => t.id !== id);
-            } else {
+            } else if (type === 'pra') {
                 praTests = praTests.filter(t => t.id !== id);
+            } else {
+                granTests = granTests.filter(t => t.id !== id);
             }
             saveStorage();
             renderTestsList();
@@ -2285,6 +2747,7 @@
             updateStatus();
             updateTimerLabels();
             renderTestsList();
+            if (document.getElementById('granView').classList.contains('active')) drawGranChart();
         }
 
         // ==================== GRAPH ====================
