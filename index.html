@@ -271,6 +271,10 @@
             opacity: 0.6;
             background: var(--paper);
         }
+        .field-table tbody tr.gran-sep-row td {
+            background: rgba(232,93,4,0.12) !important;
+            box-shadow: inset 4px 0 0 var(--orange), inset -4px 0 0 var(--orange);
+        }
         .field-table .row-num { font-size: 0.72rem; color: var(--cement); font-weight: 700; width: 30px; font-family: 'JetBrains Mono', monospace; }
 
         /* Calculated results table */
@@ -1125,6 +1129,14 @@
                         <label data-key="granTipoMaterial">Tipo de Material</label>
                         <input type="text" id="granTipoMaterial" placeholder="Ej: Arena limosa (SM)" oninput="markChanged()">
                     </div>
+                    <div class="form-group">
+                        <label data-key="granPesoTotalMuestra">Peso Total de la Muestra (g)</label>
+                        <input type="text" inputmode="decimal" id="granPesoTotal" placeholder="Ej: 5000" oninput="calcGran()">
+                    </div>
+                    <div class="form-group">
+                        <label data-key="granMallaSeparacion">Malla de Separación</label>
+                        <select id="granMallaSeparacion" onchange="calcGran()"></select>
+                    </div>
                 </div>
             </div>
 
@@ -1192,9 +1204,9 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const APP_VERSION = '1.1.8';
+        const APP_VERSION = '1.1.11';
 
-        const SW_VERSION = 'campolab-v1.1.8';
+        const SW_VERSION = 'campolab-v1.1.11';
         // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
         const WATER_DENSITY_TABLE = {};
         const waterDensityBase = {
@@ -1338,7 +1350,13 @@
                 granYAxis: "% Pasante acumulado",
                 granBtnPng: "PNG",
                 granBtnExcel: "Excel",
-                granNoData: "Faltan pesos para graficar"
+                granNoData: "Faltan pesos para graficar",
+                granPesoTotalMuestra: "Peso Total de la Muestra (g)",
+                granMallaSeparacion: "Malla de Separación",
+                granExportSuccess: "Excel generado",
+                granExportError: "No se pudo generar el Excel",
+                granPngSuccess: "Gráfica descargada",
+                granPngError: "No se pudo descargar la gráfica"
             },
             en: {
                 pageTitle: "Campo Lab",
@@ -1459,7 +1477,13 @@
                 granYAxis: "% Passing",
                 granBtnPng: "PNG",
                 granBtnExcel: "Excel",
-                granNoData: "Enter weights to plot"
+                granNoData: "Enter weights to plot",
+                granPesoTotalMuestra: "Total Sample Weight (g)",
+                granMallaSeparacion: "Separation Sieve",
+                granExportSuccess: "Excel generated",
+                granExportError: "Could not generate Excel",
+                granPngSuccess: "Chart downloaded",
+                granPngError: "Could not download chart"
             }
         };
 
@@ -2382,6 +2406,8 @@
             document.getElementById('granMuestra').value = '';
             document.getElementById('granDate').value = '';
             document.getElementById('granTipoMaterial').value = '';
+            document.getElementById('granPesoTotal').value = '';
+            populateGranMallaSelect('\u00be in');
             renderGranRows();
             document.getElementById('granTotal').textContent = '0';
             if (granChart) { granChart.destroy(); granChart = null; }
@@ -2390,6 +2416,7 @@
         function clearGranRows() {
             renderGranRows();
             document.getElementById('granTotal').textContent = '0';
+            populateGranMallaSelect('\u00be in');
             if (granChart) { granChart.destroy(); granChart = null; }
         }
 
@@ -2414,25 +2441,73 @@
         }
 
         function calcGran() {
-            const rows = document.querySelectorAll('#granBody tr');
-            let running = 0;
-            rows.forEach(tr => {
-                const parcial = parseNum(tr.querySelector('.gran-parcial').value) || 0;
-                running += parcial;
-                if (parcial && !parseNum(tr.querySelector('.gran-acumulado').value)) {
-                    tr.querySelector('.gran-acumulado').value = running;
+            try {
+                const rows = document.querySelectorAll('#granBody tr');
+                const active = document.activeElement;
+                let source = 'parcial';
+                if (active) {
+                    if (active.classList.contains('gran-acumulado')) source = 'acumulado';
+                    else if (active.classList.contains('gran-parcial')) source = 'parcial';
                 }
-            });
-            const res = calcGranResults();
-            document.getElementById('granTotal').textContent = res.total > 0 ? res.total.toFixed(1) : '0';
-            rows.forEach((tr, i) => {
-                const r = res.rows[i];
-                tr.querySelector('.gran-ret').textContent = r.pctRetenido != null ? r.pctRetenido.toFixed(2) : '-';
-                tr.querySelector('.gran-pas').textContent = r.pctPasante != null ? r.pctPasante.toFixed(2) : '-';
-            });
-            drawGranChart();
-            markChanged();
-            return res;
+
+                // Si el foco no está en una celda de peso, decidir por los datos existentes
+                if (source === 'parcial' && active && !active.classList.contains('gran-parcial')) {
+                    let hasParcial = false, hasAcumulado = false;
+                    rows.forEach(tr => {
+                        if (parseNum(tr.querySelector('.gran-parcial').value)) hasParcial = true;
+                        if (parseNum(tr.querySelector('.gran-acumulado').value)) hasAcumulado = true;
+                    });
+                    if (!hasParcial && hasAcumulado) source = 'acumulado';
+                }
+
+                if (source === 'acumulado') {
+                    let prevAcum = 0;
+                    rows.forEach(tr => {
+                        const acumIn = tr.querySelector('.gran-acumulado');
+                        const acum = parseNum(acumIn.value) || 0;
+                        const parcIn = tr.querySelector('.gran-parcial');
+                        if (document.activeElement !== parcIn) {
+                            if (acum > 0) {
+                                const diff = acum - prevAcum;
+                                parcIn.value = diff > 0 ? String(Number(diff.toFixed(4))) : '';
+                                prevAcum = acum;
+                            } else {
+                                parcIn.value = '';
+                            }
+                        } else if (acum > 0) {
+                            prevAcum = acum;
+                        }
+                    });
+                } else {
+                    let running = 0;
+                    rows.forEach(tr => {
+                        const parcIn = tr.querySelector('.gran-parcial');
+                        const parcial = parseNum(parcIn.value) || 0;
+                        running += parcial;
+                        const acumIn = tr.querySelector('.gran-acumulado');
+                        if (document.activeElement !== acumIn && parcial && !parseNum(acumIn.value)) {
+                            acumIn.value = String(Number(running.toFixed(4)));
+                        }
+                    });
+                }
+
+                const res = calcGranResults();
+                document.getElementById('granTotal').textContent = res.total > 0 ? res.total.toFixed(1) : '0';
+                rows.forEach((tr, i) => {
+                    const r = res.rows[i];
+                    tr.querySelector('.gran-ret').textContent = r.pctRetenido != null ? r.pctRetenido.toFixed(2) : '-';
+                    tr.querySelector('.gran-pas').textContent = r.pctPasante != null ? r.pctPasante.toFixed(2) : '-';
+                });
+                highlightGranSepRow();
+                drawGranChart();
+                markChanged();
+                return res;
+            } catch (err) {
+                console.error('calcGran error', err);
+                const res = calcGranResults();
+                document.getElementById('granTotal').textContent = res.total > 0 ? res.total.toFixed(1) : '0';
+                return res;
+            }
         }
 
         function calcGranResults() {
@@ -2441,8 +2516,10 @@
                 parcial: parseNum(tr.querySelector('.gran-parcial').value) || 0,
                 acumulado: parseNum(tr.querySelector('.gran-acumulado').value) || 0
             }));
-            let total = rows.reduce((s, r) => s + r.parcial, 0);
-            if (!total) total = Math.max(0, ...rows.map(r => r.acumulado));
+            const inputTotal = parseNum(document.getElementById('granPesoTotal').value) || 0;
+            let computedTotal = rows.reduce((s, r) => s + r.parcial, 0);
+            if (!computedTotal) computedTotal = Math.max(0, ...rows.map(r => r.acumulado));
+            const total = inputTotal > 0 ? inputTotal : computedTotal;
             const detailed = [];
             let running = 0;
             rows.forEach(r => {
@@ -2459,6 +2536,36 @@
                 });
             });
             return { total, rows: detailed };
+        }
+
+        function populateGranMallaSelect(selected) {
+            const sel = document.getElementById('granMallaSeparacion');
+            if (!sel) return;
+            const current = selected || sel.value || '\u00be in';
+            sel.innerHTML = '';
+            GRAN_SIEVES.forEach(s => {
+                if (s.apertura === 0) return;
+                const opt = document.createElement('option');
+                opt.value = s.tamiz;
+                opt.textContent = s.tamiz + ' (' + s.apertura + ' mm)';
+                sel.appendChild(opt);
+            });
+            sel.value = current;
+            if (!sel.value && sel.options.length) sel.selectedIndex = 0;
+        }
+
+        function highlightGranSepRow() {
+            const selName = document.getElementById('granMallaSeparacion').value;
+            const sieve = GRAN_SIEVES.find(s => s.tamiz === selName);
+            const target = sieve ? sieve.apertura : 0;
+            document.querySelectorAll('#granBody tr').forEach(tr => {
+                const abertura = parseNum(tr.querySelector('.gran-abertura').value) || 0;
+                if (target > 0 && Math.abs(abertura - target) < 0.001) {
+                    tr.classList.add('gran-sep-row');
+                } else {
+                    tr.classList.remove('gran-sep-row');
+                }
+            });
         }
 
         function drawGranChart() {
@@ -2551,61 +2658,94 @@
             return 'Granulo_' + name + '_' + date + '.' + ext;
         }
 
-        function downloadGranChart() {
-            if (!granChart || !granChart.data.datasets[0].data.length) {
-                showToast(T[lang].granNoData, 'error');
-                return;
-            }
+        function triggerDownload(href, filename) {
             const a = document.createElement('a');
-            a.href = granChart.toBase64Image('image/png', 1);
-            a.download = granFileName('png');
-            a.click();
+            a.href = href;
+            a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            try {
+                a.click();
+            } finally {
+                setTimeout(() => {
+                    if (a.parentNode) a.parentNode.removeChild(a);
+                }, 100);
+            }
+        }
+
+        function downloadGranChart() {
+            try {
+                drawGranChart();
+                if (!granChart || !granChart.data.datasets[0].data.length) {
+                    showToast(T[lang].granNoData, 'error');
+                    return;
+                }
+                const href = granChart.toBase64Image('image/png', 1);
+                triggerDownload(href, granFileName('png'));
+                showToast(T[lang].granPngSuccess, 'success');
+            } catch (err) {
+                console.error('downloadGranChart error', err);
+                showToast(T[lang].granPngError, 'error');
+                try { window.open(href, '_blank'); } catch (e) {}
+            }
         }
 
         function exportGranExcel() {
-            if (typeof XLSX === 'undefined') {
-                showToast(lang === 'es' ? 'Librería Excel no cargada' : 'Excel library not loaded', 'error');
-                return;
+            try {
+                if (typeof XLSX === 'undefined') {
+                    showToast(lang === 'es' ? 'Librería Excel no cargada' : 'Excel library not loaded', 'error');
+                    return;
+                }
+                const g = {
+                    proyecto: document.getElementById('granProyecto').value,
+                    muestra: document.getElementById('granMuestra').value,
+                    fecha: document.getElementById('granDate').value,
+                    material: document.getElementById('granTipoMaterial').value,
+                    pesoTotal: document.getElementById('granPesoTotal').value,
+                    malla: document.getElementById('granMallaSeparacion').value
+                };
+                const l = lang === 'es' ? {
+                    proyecto: 'Proyecto', muestra: 'Muestra / Ensayo N°', fecha: 'Fecha', material: 'Tipo de Material',
+                    pesoTotal: 'Peso Total de la Muestra (g)', malla: 'Malla de Separación'
+                } : {
+                    proyecto: 'Project', muestra: 'Sample / Test No.', fecha: 'Date', material: 'Material Type',
+                    pesoTotal: 'Total Sample Weight (g)', malla: 'Separation Sieve'
+                };
+                const generalData = [
+                    [l.proyecto, g.proyecto],
+                    [l.muestra, g.muestra],
+                    [l.fecha, g.fecha],
+                    [l.material, g.material],
+                    [l.pesoTotal, g.pesoTotal],
+                    [l.malla, g.malla]
+                ];
+                const res = calcGranResults();
+                const dataRows = [[
+                    T[lang].granTamiz, T[lang].granAbertura, T[lang].granPesoParcial,
+                    T[lang].granPesoAcumulado, T[lang].granPctRetenido, T[lang].granPctPasante
+                ]];
+                GRAN_SIEVES.forEach((s, i) => {
+                    const r = res.rows[i];
+                    dataRows.push([
+                        s.apertura === 0 ? T[lang].granBandeja : s.tamiz,
+                        s.apertura || '',
+                        r.parcial > 0 ? r.parcial : '',
+                        r.acumulado > 0 ? parseFloat(r.acumulado.toFixed(2)) : '',
+                        r.pctRetenido != null ? parseFloat(r.pctRetenido.toFixed(2)) : '',
+                        r.pctPasante != null ? parseFloat(r.pctPasante.toFixed(2)) : ''
+                    ]);
+                });
+                dataRows.push([]);
+                dataRows.push([T[lang].granTotal, res.total > 0 ? parseFloat(res.total.toFixed(2)) : '']);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(generalData), 'General');
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dataRows), 'Datos');
+                XLSX.writeFile(wb, granFileName('xlsx'));
+                showToast(T[lang].granExportSuccess, 'success');
+            } catch (err) {
+                console.error('exportGranExcel error', err);
+                showToast(T[lang].granExportError, 'error');
             }
-            const g = {
-                proyecto: document.getElementById('granProyecto').value,
-                muestra: document.getElementById('granMuestra').value,
-                fecha: document.getElementById('granDate').value,
-                material: document.getElementById('granTipoMaterial').value
-            };
-            const l = lang === 'es' ? {
-                proyecto: 'Proyecto', muestra: 'Muestra / Ensayo N°', fecha: 'Fecha', material: 'Tipo de Material'
-            } : {
-                proyecto: 'Project', muestra: 'Sample / Test No.', fecha: 'Date', material: 'Material Type'
-            };
-            const generalData = [
-                [l.proyecto, g.proyecto],
-                [l.muestra, g.muestra],
-                [l.fecha, g.fecha],
-                [l.material, g.material]
-            ];
-            const res = calcGranResults();
-            const dataRows = [[
-                T[lang].granTamiz, T[lang].granAbertura, T[lang].granPesoParcial,
-                T[lang].granPesoAcumulado, T[lang].granPctRetenido, T[lang].granPctPasante
-            ]];
-            GRAN_SIEVES.forEach((s, i) => {
-                const r = res.rows[i];
-                dataRows.push([
-                    s.apertura === 0 ? T[lang].granBandeja : s.tamiz,
-                    s.apertura || '',
-                    r.parcial > 0 ? r.parcial : '',
-                    r.acumulado > 0 ? parseFloat(r.acumulado.toFixed(2)) : '',
-                    r.pctRetenido != null ? parseFloat(r.pctRetenido.toFixed(2)) : '',
-                    r.pctPasante != null ? parseFloat(r.pctPasante.toFixed(2)) : ''
-                ]);
-            });
-            dataRows.push([]);
-            dataRows.push([T[lang].granTotal, res.total > 0 ? parseFloat(res.total.toFixed(2)) : '']);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(generalData), 'General');
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dataRows), 'Datos');
-            XLSX.writeFile(wb, granFileName('xlsx'));
         }
 
         function saveGran() {
@@ -2614,6 +2754,8 @@
                 muestra: document.getElementById('granMuestra').value,
                 date: document.getElementById('granDate').value,
                 tipoMaterial: document.getElementById('granTipoMaterial').value,
+                pesoTotalMuestra: document.getElementById('granPesoTotal').value,
+                mallaSeparacion: document.getElementById('granMallaSeparacion').value,
                 filas: Array.from(document.querySelectorAll('#granBody tr')).map(tr => ({
                     abertura: tr.querySelector('.gran-abertura').value,
                     parcial: tr.querySelector('.gran-parcial').value,
@@ -2642,6 +2784,8 @@
             document.getElementById('granMuestra').value = d.muestra || '';
             document.getElementById('granDate').value = d.date || new Date().toISOString().split('T')[0];
             document.getElementById('granTipoMaterial').value = d.tipoMaterial || '';
+            document.getElementById('granPesoTotal').value = d.pesoTotalMuestra || '';
+            populateGranMallaSelect(d.mallaSeparacion || '\u00be in');
             renderGranRows(Array.isArray(d.filas) ? d.filas : []);
             calcGran();
             showView('granView');
