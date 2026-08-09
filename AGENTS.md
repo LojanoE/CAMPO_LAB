@@ -9,7 +9,7 @@
 
 There is no build system, package manager, backend, or CI. Everything is plain HTML/CSS/JavaScript. The app is meant to run offline after the first load via a Service Worker.
 
-Current version: `1.1.11` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
+Current version: `1.1.12` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
 
 ## Repository layout
 
@@ -111,12 +111,12 @@ The P-V chart uses `V_corregido` on the X axis and `P_corregido` on the Y axis. 
 
 ### PRA (Densidad por Reemplazo con Agua)
 
-Five mass fields accept multiple partial weights and display running totals:
+Five mass fields accept multiple partial weights and display running totals. Each field starts with an empty row, automatically adds a new empty row when the current last row is filled, and moves focus to the new row so the user can keep typing without tapping “Agregar”:
 
 - Masa Agua Inicial
 - Masa Agua Sobrante
-- Masa Agua Total (agua agregada)
 - Masa Suelo Húmedo
+- Masa Agua Total (agua agregada)
 - Masa Roca
 
 Water density is looked up from the interpolated `LISTAS` table based on water temperature (valid range 15.0 °C to 30.9 °C; returns `1` outside that range).
