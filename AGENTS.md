@@ -9,7 +9,7 @@
 
 There is no build system, package manager, backend, or CI. Everything is plain HTML/CSS/JavaScript. The app is meant to run offline after the first load via a Service Worker.
 
-Current version: `1.1.13` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
+Current version: `1.1.15` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
 
 ## Repository layout
 
@@ -141,7 +141,7 @@ Default constants in the form:
 
 Old PRA tests saved with single mass values are loaded as the first partial row and continue to work.
 
-There is currently no Excel export for the PRA module.
+There is currently no Excel export for the PRA module. All three modules include a native **Exportar PDF** button that opens a print-formatted "Mina Mirador" field record sheet with a signature block; the user saves it as PDF from the browser print dialog.
 
 ## Data persistence
 

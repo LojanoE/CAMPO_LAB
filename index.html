@@ -364,37 +364,9 @@
             font-size: 1rem;
             background: var(--paper);
         }
-        .partial-row input[readonly] {
-            background: var(--chalk);
-            border-style: dashed;
-            color: var(--ink);
-        }
         .pra-partial-list {
             margin-bottom: 8px;
         }
-        .pra-add-row {
-            display: flex; gap: 10px; align-items: center;
-            position: sticky; bottom: 0;
-            background: var(--chalk);
-            padding: 8px 0 4px 0;
-            border-top: 2px dashed var(--ink);
-        }
-        .pra-add-row input {
-            flex: 1;
-            font-family: 'JetBrains Mono', monospace;
-            min-height: 52px;
-            padding: 10px 14px;
-            font-size: 1.1rem;
-        }
-        .btn-add-partial {
-            background: var(--success); color: var(--chalk); border: 2px solid var(--ink);
-            min-width: 56px; min-height: 52px; border-radius: var(--radius);
-            font-size: 1.6rem; line-height: 1; cursor: pointer; flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 700;
-            box-shadow: var(--shadow-hard-sm);
-        }
-        .btn-add-partial:active { transform: translate(2px, 2px); box-shadow: none; }
         .remove-btn {
             background: var(--danger); color: var(--chalk); border: 2px solid var(--ink);
             width: 48px; height: 48px; border-radius: var(--radius);
@@ -760,14 +732,53 @@
             100% { background: var(--water); color: var(--chalk); transform: scale(1); }
         }
 
+        /* Print preview and print layout */
+        #printView { background: #fff; color: #000; min-height: 100vh; }
+        #printView .container { max-width: 900px; }
+        body.printing .fab-container, body.printing .status-bar, body.printing .update-banner { display: none !important; }
+        .print-header {
+            text-align: center; border-bottom: 3px double #000; padding-bottom: 12px; margin-bottom: 20px;
+        }
+        .print-header h1 { margin: 0; font-size: 1.6rem; letter-spacing: 0.1em; text-transform: uppercase; }
+        .print-header h2 { margin: 6px 0 0; font-size: 1.1rem; font-weight: 600; }
+        .print-module-title { text-align: center; font-weight: 700; margin-bottom: 16px; text-transform: uppercase; }
+        .print-section { margin-bottom: 18px; }
+        .print-section-title {
+            font-weight: 700; font-size: 0.95rem; text-transform: uppercase; border-bottom: 1px solid #000;
+            margin-bottom: 8px; padding-bottom: 4px;
+        }
+        .print-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 16px; margin-bottom: 10px;
+        }
+        .print-field { display: flex; justify-content: space-between; border-bottom: 1px dotted #999; padding: 4px 0; }
+        .print-field.full { grid-column: 1 / -1; }
+        .print-label { font-weight: 600; }
+        .print-value { font-family: 'JetBrains Mono', monospace; }
+        .print-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 0.85rem; }
+        .print-table th, .print-table td { border: 1px solid #333; padding: 5px 6px; text-align: left; }
+        .print-table th { background: #f0f0f0; font-weight: 700; }
+        .print-table td.num { text-align: right; font-family: 'JetBrains Mono', monospace; }
+        .print-chart { max-width: 100%; margin: 12px 0; text-align: center; }
+        .print-chart img { max-width: 100%; height: auto; border: 1px solid #ccc; }
+        .print-signature {
+            margin-top: 50px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 60px;
+            page-break-inside: avoid;
+        }
+        .print-signature-box { text-align: center; }
+        .print-signature-line { border-top: 1px solid #000; margin-top: 50px; padding-top: 6px; }
+        .print-signature-label { font-weight: 700; margin-bottom: 30px; }
+        .print-signature-date { text-align: left; margin-top: 20px; }
+
         /* Print */
         @media print {
-            .fab-container, .status-bar, .btn-row, .toggle-btn, .quick-actions, .update-banner, .test-actions, .back-btn { display: none !important; }
+            .fab-container, .status-bar, .update-banner, .test-actions, .no-print, .view:not(#printView).active { display: none !important; }
             body { background: white; padding-bottom: 0; background-image: none; }
-            .calc-section { display: block !important; }
             .view { display: none !important; }
-            .view.active { display: block !important; }
+            #printView.view.active { display: block !important; }
             .card { box-shadow: none; border: 1px solid #ccc; }
+            .print-signature { page-break-inside: avoid; }
+            .print-table { page-break-inside: avoid; }
+            .print-section { page-break-inside: avoid; }
         }
 
         /* Reduced motion */
@@ -946,6 +957,7 @@
                     <button class="btn btn-outline" onclick="removeLastRow()">&#8722;</button>
                     <button class="btn btn-success" onclick="calculateAll()">&#128295; <span data-key="btnCalculate">Calcular</span></button>
                     <button class="btn btn-outline" onclick="exportPresioExcel()">&#128229; <span data-key="btnExportExcel">Excel</span></button>
+                    <button class="btn btn-primary" onclick="printFieldSheet()">&#128196; <span data-key="btnExportPdf">PDF</span></button>
                 </div>
 
                 <button class="toggle-btn" onclick="toggleCalculations()" id="toggleCalcBtn">
@@ -1045,74 +1057,54 @@
                 <div class="form-grid">
                     <div class="form-group pra-group" style="grid-column:1/-1">
                         <div class="pra-group-header" onclick="togglePraGroup('waterInicial')">
-                            <span class="pra-chevron collapsed">&#9660;</span>
+                            <span class="pra-chevron">&#9660;</span>
                             <span data-key="praAguaInicialPartials">Agua Inicial (pesos parciales)</span>
                             <span class="pra-total"><span data-key="praPartialTotal">Total:</span> <span id="praWaterInicialTotal">0</span> kg</span>
                         </div>
-                        <div class="pra-group-body collapsed">
+                        <div class="pra-group-body">
                             <div id="waterInicialPartials" class="pra-partial-list"></div>
-                            <div class="pra-add-row">
-                                <input type="text" inputmode="decimal" class="praAddInput" data-type="waterInicial" data-placeholder-key="praAddWeightPlaceholder" placeholder="Nuevo peso" onkeydown="handlePraPartialKey(event, 'waterInicial')" onblur="commitPraPartialOnBlur('waterInicial')">
-                                <button class="btn-add-partial" type="button" onclick="commitPraPartial('waterInicial')">+</button>
-                            </div>
                         </div>
                     </div>
                     <div class="form-group pra-group" style="grid-column:1/-1">
                         <div class="pra-group-header" onclick="togglePraGroup('waterSobrante')">
-                            <span class="pra-chevron collapsed">&#9660;</span>
+                            <span class="pra-chevron">&#9660;</span>
                             <span data-key="praAguaSobrantePartials">Agua Sobrante (pesos parciales)</span>
                             <span class="pra-total"><span data-key="praPartialTotal">Total:</span> <span id="praWaterSobranteTotal">0</span> kg</span>
                         </div>
-                        <div class="pra-group-body collapsed">
+                        <div class="pra-group-body">
                             <div id="waterSobrantePartials" class="pra-partial-list"></div>
-                            <div class="pra-add-row">
-                                <input type="text" inputmode="decimal" class="praAddInput" data-type="waterSobrante" data-placeholder-key="praAddWeightPlaceholder" placeholder="Nuevo peso" onkeydown="handlePraPartialKey(event, 'waterSobrante')" onblur="commitPraPartialOnBlur('waterSobrante')">
-                                <button class="btn-add-partial" type="button" onclick="commitPraPartial('waterSobrante')">+</button>
-                            </div>
                         </div>
                     </div>
                     <div class="form-group pra-group" style="grid-column:1/-1">
                         <div class="pra-group-header" onclick="togglePraGroup('suelo')">
-                            <span class="pra-chevron collapsed">&#9660;</span>
+                            <span class="pra-chevron">&#9660;</span>
                             <span data-key="praSueloPartials">Suelo Húmedo (pesos parciales)</span>
                             <span class="pra-total"><span data-key="praPartialTotal">Total:</span> <span id="praSueloTotal">0</span> kg</span>
                         </div>
                         <p class="pra-note" data-key="praSueloNote">Nota: masa total del suelo húmedo excavado del pozo, incluyendo la roca.</p>
-                        <div class="pra-group-body collapsed">
+                        <div class="pra-group-body">
                             <div id="sueloPartials" class="pra-partial-list"></div>
-                            <div class="pra-add-row">
-                                <input type="text" inputmode="decimal" class="praAddInput" data-type="suelo" data-placeholder-key="praAddWeightPlaceholder" placeholder="Nuevo peso" onkeydown="handlePraPartialKey(event, 'suelo')" onblur="commitPraPartialOnBlur('suelo')">
-                                <button class="btn-add-partial" type="button" onclick="commitPraPartial('suelo')">+</button>
-                            </div>
                         </div>
                     </div>
                     <div class="form-group pra-group" style="grid-column:1/-1">
                         <div class="pra-group-header" onclick="togglePraGroup('water')">
-                            <span class="pra-chevron collapsed">&#9660;</span>
+                            <span class="pra-chevron">&#9660;</span>
                             <span data-key="praAguaPartials">Agua Agregada (pesos parciales)</span>
                             <span class="pra-total"><span data-key="praPartialTotal">Total:</span> <span id="praWaterTotal">0</span> kg</span>
                         </div>
-                        <div class="pra-group-body collapsed">
+                        <div class="pra-group-body">
                             <div id="waterPartials" class="pra-partial-list"></div>
-                            <div class="pra-add-row">
-                                <input type="text" inputmode="decimal" class="praAddInput" data-type="water" data-placeholder-key="praAddWeightPlaceholder" placeholder="Nuevo peso" onkeydown="handlePraPartialKey(event, 'water')" onblur="commitPraPartialOnBlur('water')">
-                                <button class="btn-add-partial" type="button" onclick="commitPraPartial('water')">+</button>
-                            </div>
                         </div>
                     </div>
                     <div class="form-group pra-group" style="grid-column:1/-1">
                         <div class="pra-group-header" onclick="togglePraGroup('roca')">
-                            <span class="pra-chevron collapsed">&#9660;</span>
+                            <span class="pra-chevron">&#9660;</span>
                             <span data-key="praRocaPartials">Roca (pesos parciales)</span>
                             <span class="pra-total"><span data-key="praPartialTotal">Total:</span> <span id="praRocaTotal">0</span> kg</span>
                         </div>
                         <p class="pra-note" data-key="praRocaNote">Nota: la masa de roca se descuenta del suelo húmedo y del volumen de agua en los cálculos.</p>
-                        <div class="pra-group-body collapsed">
+                        <div class="pra-group-body">
                             <div id="rocaPartials" class="pra-partial-list"></div>
-                            <div class="pra-add-row">
-                                <input type="text" inputmode="decimal" class="praAddInput" data-type="roca" data-placeholder-key="praAddWeightPlaceholder" placeholder="Nuevo peso" onkeydown="handlePraPartialKey(event, 'roca')" onblur="commitPraPartialOnBlur('roca')">
-                                <button class="btn-add-partial" type="button" onclick="commitPraPartial('roca')">+</button>
-                            </div>
                         </div>
                     </div>
                     <div class="form-group full">
@@ -1149,6 +1141,9 @@
                         <label data-key="praCompactacion">Compactación (%)</label>
                         <span class="value" id="resCompactacion">-</span>
                     </div>
+                </div>
+                <div class="btn-row" style="margin-top:16px">
+                    <button class="btn btn-primary" onclick="printFieldSheet()">&#128196; <span data-key="btnExportPdf">PDF</span></button>
                 </div>
             </div>
         </div>
@@ -1222,10 +1217,21 @@
                 <div class="btn-row">
                     <button class="btn btn-primary" onclick="downloadGranChart()">&#128229; <span data-key="granBtnPng">PNG</span></button>
                     <button class="btn btn-accent" onclick="exportGranExcel()">&#128196; <span data-key="granBtnExcel">Excel</span></button>
+                    <button class="btn btn-primary" onclick="printFieldSheet()">&#128196; <span data-key="btnExportPdf">PDF</span></button>
                 </div>
             </div>
         </div>
     </div>
+
+    <div id="printView" class="view">
+        <div class="header header-nav no-print">
+            <button class="back-btn" onclick="closePrintView()">&#8592; Cerrar</button>
+            <h1 data-key="printFieldSheet">HOJA DE CAMPO</h1>
+            <div style="width:60px"></div>
+        </div>
+        <div id="printContent"></div>
+    </div>
+
     <div class="fab-container">
         <button class="fab fab-home" onclick="goHome()" title="Inicio">&#8962;<span class="fab-label" data-key="fabHome">Inicio</span></button>
         <button class="fab fab-save" onclick="saveCurrent()" title="Guardar">&#128190;<span class="fab-label" data-key="fabSave">Guardar</span></button>
@@ -1255,9 +1261,9 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const APP_VERSION = '1.1.13';
+        const APP_VERSION = '1.1.15';
 
-        const SW_VERSION = 'campolab-v1.1.13';
+        const SW_VERSION = 'campolab-v1.1.15';
         // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
         const WATER_DENSITY_TABLE = {};
         const waterDensityBase = {
@@ -1408,7 +1414,14 @@
                 granExportSuccess: "Excel generado",
                 granExportError: "No se pudo generar el Excel",
                 granPngSuccess: "Gráfica descargada",
-                granPngError: "No se pudo descargar la gráfica"
+                granPngError: "No se pudo descargar la gráfica",
+                btnExportPdf: "Exportar PDF",
+                printCompany: "MINA MIRADOR",
+                printFieldSheet: "HOJA DE CAMPO",
+                printSignaturePrepared: "Elaborado por",
+                printSignatureReviewed: "Revisado por",
+                printSignatureDate: "Fecha",
+                printSignatureSignature: "Firma"
             },
             en: {
                 pageTitle: "Campo Lab",
@@ -1536,7 +1549,14 @@
                 granExportSuccess: "Excel generated",
                 granExportError: "Could not generate Excel",
                 granPngSuccess: "Chart downloaded",
-                granPngError: "Could not download chart"
+                granPngError: "Could not download chart",
+                btnExportPdf: "Export PDF",
+                printCompany: "MINA MIRADOR",
+                printFieldSheet: "FIELD RECORD SHEET",
+                printSignaturePrepared: "Prepared by",
+                printSignatureReviewed: "Reviewed by",
+                printSignatureDate: "Date",
+                printSignatureSignature: "Signature"
             }
         };
 
@@ -2213,18 +2233,55 @@
             roca: { container: 'rocaPartials', total: 'praRocaTotal' }
         };
 
-        function addPraPartial(type, value) {
+        function addPraPartial(type, value, focus = false) {
             const info = PRA_PARTIALS[type];
-            if (!info) return;
+            if (!info) return null;
             const raw = value !== undefined && value !== null ? String(value).trim() : '';
-            if (raw === '') return;
             const container = document.getElementById(info.container);
             const row = document.createElement('div');
             row.className = 'partial-row pra-partial-item';
-            row.innerHTML = `<input type="text" inputmode="decimal" class="praPartial" data-type="${type}" value="${raw}" readonly tabindex="-1">
+            row.innerHTML = `<input type="text" inputmode="decimal" enterkeyhint="next" class="praPartial" data-type="${type}" data-placeholder-key="praAddWeightPlaceholder" placeholder="${T[lang].praAddWeightPlaceholder}"
+                             oninput="handlePraRowInput(this)" onkeydown="handlePraRowKey(event, this)">
                              <button class="remove-btn" onclick="removePraPartial(this)" type="button">×</button>`;
+            row.querySelector('.praPartial').value = raw;
             container.appendChild(row);
             updatePraPartials();
+            if (focus) row.querySelector('.praPartial').focus();
+            return row;
+        }
+
+        function ensureEmptyPraRow(type) {
+            const inputs = document.querySelectorAll(`.praPartial[data-type="${type}"]`);
+            if (inputs.length === 0 || inputs[inputs.length - 1].value.trim() !== '') {
+                addPraPartial(type, '');
+            }
+        }
+
+        function handlePraRowInput(input) {
+            const type = input.dataset.type;
+            const inputs = document.querySelectorAll(`.praPartial[data-type="${type}"]`);
+            if (inputs[inputs.length - 1] === input && input.value.trim() !== '') {
+                ensureEmptyPraRow(type);
+            }
+            updatePraPartials();
+        }
+
+        function handlePraRowKey(event, input) {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            const type = input.dataset.type;
+            ensureEmptyPraRow(type);
+            const inputs = document.querySelectorAll(`.praPartial[data-type="${type}"]`);
+            for (let i = 0; i < inputs.length; i++) {
+                if (inputs[i] === input) {
+                    const next = inputs[i + 1];
+                    if (next) {
+                        next.focus();
+                        next.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                    break;
+                }
+            }
         }
 
         function togglePraGroup(type) {
@@ -2239,7 +2296,11 @@
 
         function removePraPartial(btn) {
             const row = btn.closest('.partial-row');
-            if (row) row.remove();
+            if (!row) return;
+            const input = row.querySelector('.praPartial');
+            const type = input ? input.dataset.type : null;
+            row.remove();
+            if (type) ensureEmptyPraRow(type);
             updatePraPartials();
         }
 
@@ -2254,32 +2315,6 @@
                 if (totalEl) totalEl.textContent = total.toFixed(3).replace(/\.?0+$/, '').replace('.', ',');
             });
             calcPra();
-        }
-
-        function handlePraPartialKey(event, type) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                commitPraPartial(type);
-            }
-        }
-
-        function commitPraPartial(type) {
-            const addInput = document.querySelector(`.praAddInput[data-type="${type}"]`);
-            if (!addInput) return;
-            const raw = addInput.value.trim();
-            if (raw === '') return;
-            addPraPartial(type, raw);
-            addInput.value = '';
-            addInput.focus();
-            addInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        function commitPraPartialOnBlur(type) {
-            commitPraPartial(type);
-        }
-
-        function commitPendingPraPartials() {
-            Object.keys(PRA_PARTIALS).forEach(type => commitPraPartial(type));
         }
 
         function getPraPartials(type) {
@@ -2301,8 +2336,7 @@
             Object.keys(PRA_PARTIALS).forEach(type => {
                 document.getElementById(PRA_PARTIALS[type].container).innerHTML = '';
                 document.getElementById(PRA_PARTIALS[type].total).textContent = '0';
-                const addInput = document.querySelector(`.praAddInput[data-type="${type}"]`);
-                if (addInput) addInput.value = '';
+                ensureEmptyPraRow(type);
             });
             document.getElementById('praHumedad').value = '';
             document.getElementById('resVolTotal').textContent = '-';
@@ -2331,8 +2365,6 @@
             document.getElementById('praDensidadRoca').value = d.densidadRoca || '2800';
             Object.keys(PRA_PARTIALS).forEach(type => {
                 document.getElementById(PRA_PARTIALS[type].container).innerHTML = '';
-                const addInput = document.querySelector(`.praAddInput[data-type="${type}"]`);
-                if (addInput) addInput.value = '';
             });
             if (Array.isArray(d.masaAguaInicialPartials)) {
                 d.masaAguaInicialPartials.forEach(v => addPraPartial('waterInicial', v));
@@ -2359,6 +2391,7 @@
             } else if (d.masaRoca) {
                 addPraPartial('roca', d.masaRoca);
             }
+            Object.keys(PRA_PARTIALS).forEach(type => ensureEmptyPraRow(type));
             document.getElementById('praHumedad').value = d.humedad || '';
             calcPra();
             changed = false;
@@ -2367,7 +2400,6 @@
         }
 
         function savePra() {
-            commitPendingPraPartials();
             const data = {
                 pozoNum: document.getElementById('praPozoNum').value,
                 temp: document.getElementById('praTemp').value,
@@ -3028,6 +3060,204 @@
             link.download = `PV_${testNum}_${new Date().toISOString().split('T')[0]}.png`;
             link.href = document.getElementById('pvChart').toDataURL();
             link.click();
+        }
+
+        // ==================== PRINT / PDF FIELD SHEET ====================
+        let printPrevViewId = 'homeView';
+
+        function printFieldSheet() {
+            const active = document.querySelector('.view.active');
+            printPrevViewId = active ? active.id : 'homeView';
+            if (printPrevViewId === 'printView') printPrevViewId = 'homeView';
+            document.getElementById('printContent').innerHTML = buildPrintContent(printPrevViewId);
+            document.body.classList.add('printing');
+            showView('printView');
+            window.onafterprint = () => {
+                document.body.classList.remove('printing');
+                window.onafterprint = null;
+                showView(printPrevViewId);
+            };
+            window.print();
+        }
+
+        function closePrintView() {
+            document.body.classList.remove('printing');
+            window.onafterprint = null;
+            showView(printPrevViewId || 'homeView');
+        }
+
+        function buildPrintContent(viewId) {
+            const v = (id) => {
+                const el = document.getElementById(id);
+                return el ? el.value : '';
+            };
+            const t = (id) => {
+                const el = document.getElementById(id);
+                return el ? el.textContent : '-';
+            };
+            const field = (label, value, full = false) => `<div class="print-field${full ? ' full' : ''}"><span class="print-label">${escapeHtml(label)}</span><span class="print-value">${escapeHtml(value || '-')}</span></div>`;
+            const sectionTitle = (title) => `<div class="print-section-title">${escapeHtml(title)}</div>`;
+            const section = (title, content) => `<div class="print-section">${sectionTitle(title)}${content}</div>`;
+
+            let moduleTitle = 'ENSAYO';
+            const moduleHeading = document.querySelector(`#${viewId} h1`);
+            if (moduleHeading) moduleTitle = moduleHeading.textContent;
+
+            let body = '';
+
+            if (viewId === 'presioView') {
+                body += section(T[lang].generalInfo || 'Información General', `<div class="print-grid">` +
+                    field(T[lang].projectName || 'Proyecto', v('projectName')) +
+                    field(T[lang].testNumber || 'Ensayo N°', v('testNumber')) +
+                    field(T[lang].testDate || 'Fecha', v('testDate')) +
+                    field(T[lang].testTime || 'Hora', v('testTime')) +
+                    field(T[lang].elevationDiff || 'Diff. Altura (m)', v('elevationDiff')) +
+                    field(T[lang].waterLevel || 'Nivel Freático (m)', v('waterLevel')) +
+                    field(T[lang].stratumDesc || 'Descripción del Estrato', v('stratumDesc'), true) +
+                    `</div>`);
+
+                body += section(T[lang].testConstants || 'Constantes del Equipo', `<div class="print-grid">` +
+                    field('η (calibración)', v('eta')) +
+                    field('A (cm²)', v('areaA')) +
+                    field('Vc (cm³)', v('volVc')) +
+                    field('Pw (Bar)', v('pw')) +
+                    `</div>`);
+
+                let rowsHtml = '';
+                document.querySelectorAll('#tableBody tr').forEach(tr => {
+                    const pm = tr.querySelector('.inp-pm')?.value || '';
+                    const p1 = tr.querySelector('.inp-p1')?.value || '';
+                    const v15 = tr.querySelector('.inp-15')?.value || '';
+                    const v30 = tr.querySelector('.inp-30')?.value || '';
+                    const v60 = tr.querySelector('.inp-60')?.value || '';
+                    const v180 = tr.querySelector('.inp-180')?.value || '';
+                    if (!pm && !p1 && !v15 && !v30 && !v60 && !v180) return;
+                    rowsHtml += `<tr><td class="num">${tr.querySelector('.row-num')?.textContent || ''}</td><td class="num">${escapeHtml(pm)}</td><td class="num">${escapeHtml(p1)}</td><td class="num">${escapeHtml(v15)}</td><td class="num">${escapeHtml(v30)}</td><td class="num">${escapeHtml(v60)}</td><td class="num">${escapeHtml(v180)}</td></tr>`;
+                });
+                body += section(T[lang].dataTable || 'Lecturas de Campo', rowsHtml
+                    ? `<table class="print-table"><thead><tr><th>#</th><th>Pm</th><th>P1</th><th>15s</th><th>30s</th><th>60s</th><th>180s</th></tr></thead><tbody>${rowsHtml}</tbody></table>`
+                    : '<p>Sin datos</p>');
+
+                let calcHtml = '';
+                document.querySelectorAll('#calcBody tr').forEach(tr => {
+                    const cells = tr.querySelectorAll('td');
+                    if (cells.length < 6) return;
+                    const vals = Array.from(cells).map(td => td.textContent.trim());
+                    if (vals.slice(1).every(x => x === '' || x === '-')) return;
+                    calcHtml += `<tr><td class="num">${escapeHtml(vals[0])}</td><td class="num">${escapeHtml(vals[1])}</td><td class="num">${escapeHtml(vals[2])}</td><td class="num">${escapeHtml(vals[3])}</td><td class="num">${escapeHtml(vals[4])}</td><td class="num">${escapeHtml(vals[5])}</td></tr>`;
+                });
+                body += section(T[lang].showCalcs || 'Resultados Calculados', calcHtml
+                    ? `<table class="print-table"><thead><tr><th>#</th><th>P Corregido</th><th>δv</th><th>V Corregido</th><th>ΔV60-30</th><th>ΔV180-30</th></tr></thead><tbody>${calcHtml}</tbody></table>`
+                    : '<p>Sin cálculos</p>');
+
+                const hasChartData = Array.from(document.querySelectorAll('#tableBody tr')).some(tr => (parseNum(tr.querySelector('.inp-pm')?.value) || 0) && ((parseNum(tr.querySelector('.inp-60')?.value) || 0) || (parseNum(tr.querySelector('.inp-180')?.value) || 0)));
+                if (hasChartData) {
+                    drawChart();
+                    body += `<div class="print-chart"><img src="${document.getElementById('pvChart').toDataURL()}" alt="P-V"></div>`;
+                }
+            } else if (viewId === 'praView') {
+                body += section(T[lang].praGeneralInfo || 'Información General', `<div class="print-grid">` +
+                    field(T[lang].praPozoNum || 'N° Pozo', v('praPozoNum')) +
+                    field(T[lang].praDate || 'Fecha', v('praDate')) +
+                    field(T[lang].praMetodo || 'Método', v('praMetodo')) +
+                    field(T[lang].praEquipo || 'Equipo', v('praEquipo')) +
+                    field(T[lang].praDiametro || 'Diámetro Anillo (m)', v('praDiametro')) +
+                    field(T[lang].praTamanio || 'Tamaño Máximo (GTM)', v('praTamanio')) +
+                    field(T[lang].praProfundidad || 'Profundidad Pozo (m)', v('praProfundidad')) +
+                    field(T[lang].praTemp || 'Temperatura Agua (°C)', v('praTemp')) +
+                    field(T[lang].praDescripcion || 'Descripción Visual', v('praDescripcion'), true) +
+                    `</div>`);
+
+                body += section(T[lang].praConstants || 'Constantes', `<div class="print-grid">` +
+                    field(T[lang].praDensidadAgua || 'Densidad Agua', v('praDensidadAgua')) +
+                    field(T[lang].praDensidadSecaMax || 'Densidad Seca Máxima', v('praDensidadSecaMax')) +
+                    field(T[lang].praDensidadRoca || 'Densidad Roca', v('praDensidadRoca')) +
+                    field(T[lang].praHumedad || 'Humedad (%)', v('praHumedad')) +
+                    `</div>`);
+
+                const partialTypes = [
+                    { type: 'waterInicial', label: T[lang].praAguaInicialPartials || 'Agua Inicial' },
+                    { type: 'waterSobrante', label: T[lang].praAguaSobrantePartials || 'Agua Sobrante' },
+                    { type: 'suelo', label: T[lang].praSueloPartials || 'Suelo Húmedo' },
+                    { type: 'water', label: T[lang].praAguaPartials || 'Agua Agregada' },
+                    { type: 'roca', label: T[lang].praRocaPartials || 'Roca' }
+                ];
+                partialTypes.forEach(pt => {
+                    const inputs = document.querySelectorAll(`.praPartial[data-type="${pt.type}"]`);
+                    const values = Array.from(inputs).map(i => i.value.trim()).filter(x => x !== '');
+                    const totalId = PRA_PARTIALS[pt.type]?.total;
+                    const total = totalId ? document.getElementById(totalId)?.textContent || '0' : '0';
+                    body += section(`${pt.label} (kg)`, values.length
+                        ? `<div class="print-grid">${values.map((val, idx) => field(`Peso ${idx + 1}`, val)).join('')}</div><p><strong>Total:</strong> ${escapeHtml(total)} kg</p>`
+                        : '<p>-</p>');
+                });
+
+                body += section(T[lang].praResults || 'Resultados', `<div class="print-grid">` +
+                    field(T[lang].praVolTotal || 'Volumen Anillo + Pozo', t('resVolTotal')) +
+                    field(T[lang].praVolAnillo || 'Volumen Anillo', t('resVolAnillo')) +
+                    field(T[lang].praVolPozo || 'Volumen Pozo', t('resVolPozo')) +
+                    field(T[lang].praDensidadHumeda || 'Densidad Húmeda', t('resDensidadHumeda')) +
+                    field(T[lang].praDensidadSeca || 'Densidad Seca', t('resDensidadSeca')) +
+                    field(T[lang].praCompactacion || 'Compactación', t('resCompactacion')) +
+                    `</div>`);
+            } else if (viewId === 'granView') {
+                body += section(T[lang].granGeneralInfo || 'Información General', `<div class="print-grid">` +
+                    field(T[lang].projectName || 'Proyecto', v('granProyecto')) +
+                    field(T[lang].granMuestra || 'Muestra / Ensayo N°', v('granMuestra')) +
+                    field(T[lang].testDate || 'Fecha', v('granDate')) +
+                    field(T[lang].granTipoMaterial || 'Tipo de Material', v('granTipoMaterial')) +
+                    field(T[lang].granPesoTotalMuestra || 'Peso Total Muestra (g)', v('granPesoTotal')) +
+                    field(T[lang].granMallaSeparacion || 'Malla de Separación', document.getElementById('granMallaSeparacion')?.value || '') +
+                    `</div>`);
+
+                let granHtml = '';
+                document.querySelectorAll('#granBody tr').forEach(tr => {
+                    const cells = tr.querySelectorAll('td');
+                    if (cells.length < 7) return;
+                    const tamiz = cells[1].textContent.trim();
+                    const abertura = tr.querySelector('.gran-abertura')?.value || '';
+                    const parcial = tr.querySelector('.gran-parcial')?.value || '';
+                    const acumulado = tr.querySelector('.gran-acumulado')?.value || '';
+                    const ret = cells[5].textContent.trim();
+                    const pas = cells[6].textContent.trim();
+                    granHtml += `<tr><td>${escapeHtml(tamiz)}</td><td class="num">${escapeHtml(abertura)}</td><td class="num">${escapeHtml(parcial)}</td><td class="num">${escapeHtml(acumulado)}</td><td class="num">${escapeHtml(ret)}</td><td class="num">${escapeHtml(pas)}</td></tr>`;
+                });
+                body += section(T[lang].granData || 'Datos de Tamizado', granHtml
+                    ? `<table class="print-table"><thead><tr><th>Tamiz</th><th>Abertura (mm)</th><th>Peso Parcial (g)</th><th>Peso Acum. (g)</th><th>% Retenido</th><th>% Pasante</th></tr></thead><tbody>${granHtml}</tbody></table><p><strong>${T[lang].granTotal || 'Peso Total'}:</strong> ${t('granTotal')} g</p>`
+                    : '<p>Sin datos</p>');
+
+                const granCanvas = document.getElementById('granChart');
+                if (granCanvas && granChart) {
+                    body += `<div class="print-chart"><img src="${granCanvas.toDataURL()}" alt="Granulometría"></div>`;
+                }
+            }
+
+            const signature = `
+                <div class="print-signature">
+                    <div class="print-signature-box">
+                        <div class="print-signature-label">${T[lang].printSignaturePrepared || 'Elaborado por'}</div>
+                        <div class="print-signature-line">${T[lang].printSignatureSignature || 'Firma'}</div>
+                        <div class="print-signature-date">${T[lang].printSignatureDate || 'Fecha'}: _____________</div>
+                    </div>
+                    <div class="print-signature-box">
+                        <div class="print-signature-label">${T[lang].printSignatureReviewed || 'Revisado por'}</div>
+                        <div class="print-signature-line">${T[lang].printSignatureSignature || 'Firma'}</div>
+                        <div class="print-signature-date">${T[lang].printSignatureDate || 'Fecha'}: _____________</div>
+                    </div>
+                </div>
+            `;
+
+            return `
+                <div class="container">
+                    <div class="print-header">
+                        <h1>${T[lang].printCompany || 'MINA MIRADOR'}</h1>
+                        <h2 data-key="printFieldSheet">${T[lang].printFieldSheet || 'HOJA DE CAMPO'}</h2>
+                    </div>
+                    <div class="print-module-title">${escapeHtml(moduleTitle)}</div>
+                    ${body}
+                    ${signature}
+                </div>
+            `;
         }
 
         // ==================== UTILS ====================
