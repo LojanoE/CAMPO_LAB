@@ -736,6 +736,18 @@
         #printView { background: #fff; color: #000; min-height: 100vh; }
         #printView .container { max-width: 900px; }
         body.printing .fab-container, body.printing .status-bar, body.printing .update-banner { display: none !important; }
+
+        /* Signature pad */
+        .signature-wrap {
+            background: #fff; border: 2px solid var(--ink); border-radius: var(--radius);
+            padding: 4px; overflow: hidden;
+        }
+        .signature-pad {
+            display: block; width: 100%; height: 140px; touch-action: none; cursor: crosshair;
+        }
+        .print-signature-img {
+            max-width: 220px; height: auto; display: block; margin: 4px auto 0;
+        }
         .print-header {
             text-align: center; border-bottom: 3px double #000; padding-bottom: 12px; margin-bottom: 20px;
         }
@@ -982,6 +994,17 @@
                     </div>
                 </div>
             </div>
+        <div class="card">
+            <div class="card-title">&#9998; <span data-key="signatureLabel">Firma del operador</span></div>
+            <div class="signature-wrap">
+                <canvas id="presioSignature" class="signature-pad" data-type="presio"></canvas>
+            </div>
+            <div class="btn-row" style="margin-top:8px">
+                <button type="button" class="btn btn-outline" onclick="clearSignature('presioSignature')">
+                    <span data-key="signatureClear">Borrar firma</span>
+                </button>
+            </div>
+        </div>
         </div>
 
         <!-- PRA VIEW -->
@@ -1146,6 +1169,17 @@
                     <button class="btn btn-primary" onclick="printFieldSheet()">&#128196; <span data-key="btnExportPdf">PDF</span></button>
                 </div>
             </div>
+        <div class="card">
+            <div class="card-title">&#9998; <span data-key="signatureLabel">Firma del operador</span></div>
+            <div class="signature-wrap">
+                <canvas id="praSignature" class="signature-pad" data-type="pra"></canvas>
+            </div>
+            <div class="btn-row" style="margin-top:8px">
+                <button type="button" class="btn btn-outline" onclick="clearSignature('praSignature')">
+                    <span data-key="signatureClear">Borrar firma</span>
+                </button>
+            </div>
+        </div>
         </div>
 
         <!-- GRANULOMETRÍA VIEW -->
@@ -1220,6 +1254,17 @@
                     <button class="btn btn-primary" onclick="printFieldSheet()">&#128196; <span data-key="btnExportPdf">PDF</span></button>
                 </div>
             </div>
+        <div class="card">
+            <div class="card-title">&#9998; <span data-key="signatureLabel">Firma del operador</span></div>
+            <div class="signature-wrap">
+                <canvas id="granSignature" class="signature-pad" data-type="gran"></canvas>
+            </div>
+            <div class="btn-row" style="margin-top:8px">
+                <button type="button" class="btn btn-outline" onclick="clearSignature('granSignature')">
+                    <span data-key="signatureClear">Borrar firma</span>
+                </button>
+            </div>
+        </div>
         </div>
     </div>
 
@@ -1261,9 +1306,9 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const APP_VERSION = '1.1.15';
+        const APP_VERSION = '1.1.16';
 
-        const SW_VERSION = 'campolab-v1.1.15';
+        const SW_VERSION = 'campolab-v1.1.16';
         // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
         const WATER_DENSITY_TABLE = {};
         const waterDensityBase = {
@@ -1421,7 +1466,9 @@
                 printSignaturePrepared: "Elaborado por",
                 printSignatureReviewed: "Revisado por",
                 printSignatureDate: "Fecha",
-                printSignatureSignature: "Firma"
+                printSignatureSignature: "Firma",
+                signatureLabel: "Firma del operador",
+                signatureClear: "Borrar firma"
             },
             en: {
                 pageTitle: "Campo Lab",
@@ -1556,7 +1603,9 @@
                 printSignaturePrepared: "Prepared by",
                 printSignatureReviewed: "Reviewed by",
                 printSignatureDate: "Date",
-                printSignatureSignature: "Signature"
+                printSignatureSignature: "Signature",
+                signatureLabel: "Operator signature",
+                signatureClear: "Clear signature"
             }
         };
 
@@ -1592,6 +1641,7 @@
             createDefaultRows();
             initPraDate();
             setupInputs();
+            initSignaturePads();
             applyLang();
             showView('homeView');
             renderTestsList();
@@ -1900,6 +1950,7 @@
             document.getElementById('pw').value = '';
             document.getElementById('tableBody').innerHTML = '';
             document.getElementById('calcBody').innerHTML = '';
+            clearSignature('presioSignature');
         }
 
         function loadPresioTest(id) {
@@ -1938,6 +1989,7 @@
             }
             resetTimer();
             calculateAll();
+            setSignature('presioSignature', d.signature || '');
             changed = false;
             updateStatus();
             showView('presioView');
@@ -1971,7 +2023,8 @@
                     volVc: document.getElementById('volVc').value,
                     pw: document.getElementById('pw').value
                 },
-                rows, lang
+                rows, lang,
+                signature: getSignature('presioSignature')
             };
             const name = document.getElementById('testNumber').value || (lang === 'es' ? 'Ensayo' : 'Test');
             const project = document.getElementById('projectName').value || '';
@@ -2345,6 +2398,7 @@
             document.getElementById('resDensidadHumeda').textContent = '-';
             document.getElementById('resDensidadSeca').textContent = '-';
             document.getElementById('resCompactacion').textContent = '-';
+            clearSignature('praSignature');
         }
 
         function loadPraTest(id) {
@@ -2394,6 +2448,7 @@
             Object.keys(PRA_PARTIALS).forEach(type => ensureEmptyPraRow(type));
             document.getElementById('praHumedad').value = d.humedad || '';
             calcPra();
+            setSignature('praSignature', d.signature || '');
             changed = false;
             updateStatus();
             showView('praView');
@@ -2417,7 +2472,8 @@
                 masaAguaPartials: getPraPartials('water').filter(v => v.trim() !== ''),
                 masaSueloPartials: getPraPartials('suelo').filter(v => v.trim() !== ''),
                 masaRocaPartials: getPraPartials('roca').filter(v => v.trim() !== ''),
-                humedad: document.getElementById('praHumedad').value
+                humedad: document.getElementById('praHumedad').value,
+                signature: getSignature('praSignature')
             };
             const name = data.pozoNum || (lang === 'es' ? 'Pozo' : 'Pit');
             const date = data.date || new Date().toISOString().split('T')[0];
@@ -2529,6 +2585,7 @@
             renderGranRows();
             document.getElementById('granTotal').textContent = '0';
             if (granChart) { granChart.destroy(); granChart = null; }
+            clearSignature('granSignature');
         }
 
         function clearGranRows() {
@@ -2878,7 +2935,8 @@
                     abertura: tr.querySelector('.gran-abertura').value,
                     parcial: tr.querySelector('.gran-parcial').value,
                     acumulado: tr.querySelector('.gran-acumulado').value
-                }))
+                })),
+                signature: getSignature('granSignature')
             };
             const res = calcGranResults();
             const name = data.muestra || (lang === 'es' ? 'Granulometría' : 'Granulometry');
@@ -2906,6 +2964,7 @@
             populateGranMallaSelect(d.mallaSeparacion || '\u00be in');
             renderGranRows(Array.isArray(d.filas) ? d.filas : []);
             calcGran();
+            setSignature('granSignature', d.signature || '');
             showView('granView');
         }
 
@@ -3086,6 +3145,98 @@
             showView(printPrevViewId || 'homeView');
         }
 
+        // ==================== SIGNATURE PAD ====================
+        function initSignaturePads() {
+            document.querySelectorAll('.signature-pad').forEach(canvas => {
+                if (canvas._sig) return;
+                const ctx = canvas.getContext('2d');
+                const state = { drawing: false, dirty: false };
+                canvas._sig = { ctx, state };
+                canvas.width = 800;
+                canvas.height = 280;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = '#000';
+
+                const getPos = (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const src = e.touches ? e.touches[0] : e;
+                    const clientX = src.clientX;
+                    const clientY = src.clientY;
+                    return {
+                        x: (clientX - rect.left) * (canvas.width / rect.width),
+                        y: (clientY - rect.top) * (canvas.height / rect.height)
+                    };
+                };
+
+                const start = (e) => {
+                    e.preventDefault();
+                    state.drawing = true;
+                    state.dirty = true;
+                    markChanged();
+                    const pos = getPos(e);
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x, pos.y);
+                };
+                const move = (e) => {
+                    if (!state.drawing) return;
+                    e.preventDefault();
+                    const pos = getPos(e);
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.stroke();
+                };
+                const end = () => { state.drawing = false; };
+
+                canvas.addEventListener('pointerdown', start);
+                canvas.addEventListener('pointermove', move);
+                canvas.addEventListener('pointerup', end);
+                canvas.addEventListener('pointerleave', end);
+                canvas.addEventListener('touchstart', start, { passive: false });
+                canvas.addEventListener('touchmove', move, { passive: false });
+                canvas.addEventListener('touchend', end);
+                canvas.addEventListener('mousedown', start);
+                canvas.addEventListener('mousemove', move);
+                canvas.addEventListener('mouseup', end);
+                canvas.addEventListener('mouseleave', end);
+            });
+        }
+
+        function getSignature(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas || !canvas._sig || !canvas._sig.state.dirty) return '';
+            return canvas.toDataURL('image/png');
+        }
+
+        function setSignature(canvasId, dataUrl) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas || !dataUrl) return;
+            if (!canvas._sig) initSignaturePads();
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                canvas._sig.state.dirty = true;
+            };
+            img.src = dataUrl;
+        }
+
+        function clearSignature(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            if (!canvas._sig) initSignaturePads();
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvas._sig.state.dirty = false;
+            markChanged();
+        }
+
+        function isSignatureEmpty(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            return !canvas || !canvas._sig || !canvas._sig.state.dirty;
+        }
+
         function buildPrintContent(viewId) {
             const v = (id) => {
                 const el = document.getElementById(id);
@@ -3232,11 +3383,16 @@
                 }
             }
 
+            const sigCanvasId = viewId.replace('View', 'Signature');
+            const sigData = getSignature(sigCanvasId);
+            const preparedSignature = sigData
+                ? `<img class="print-signature-img" src="${sigData}" alt="${T[lang].printSignatureSignature || 'Firma'}">`
+                : `<div class="print-signature-line">${T[lang].printSignatureSignature || 'Firma'}</div>`;
             const signature = `
                 <div class="print-signature">
                     <div class="print-signature-box">
                         <div class="print-signature-label">${T[lang].printSignaturePrepared || 'Elaborado por'}</div>
-                        <div class="print-signature-line">${T[lang].printSignatureSignature || 'Firma'}</div>
+                        ${preparedSignature}
                         <div class="print-signature-date">${T[lang].printSignatureDate || 'Fecha'}: _____________</div>
                     </div>
                     <div class="print-signature-box">
