@@ -366,7 +366,20 @@
         }
         .pra-partial-list {
             margin-bottom: 8px;
+            counter-reset: praRow;
         }
+        .pra-partial-list .partial-row::before {
+            counter-increment: praRow;
+            content: counter(praRow);
+            flex-shrink: 0;
+            min-width: 26px;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--cement);
+        }
+        .partial-row.active-row input { border-color: var(--water); background: #eaf3f7; }
         .remove-btn {
             background: var(--danger); color: var(--chalk); border: 2px solid var(--ink);
             width: 48px; height: 48px; border-radius: var(--radius);
@@ -389,6 +402,7 @@
             padding: 10px 12px; margin-bottom: 8px;
             font-weight: 700; font-size: 0.9rem;
             box-shadow: var(--shadow-hard-sm);
+            position: sticky; top: 0; z-index: 5;
         }
         .pra-group-header:active { transform: translate(2px, 2px); box-shadow: none; }
         .pra-chevron {
@@ -396,13 +410,25 @@
             transition: transform 0.2s ease;
         }
         .pra-chevron.collapsed { transform: rotate(-90deg); }
-        .pra-total {
+        .pra-count {
             margin-left: auto; flex-shrink: 0;
+            font-size: 0.75rem; color: var(--cement); font-weight: 600;
+        }
+        .pra-total {
+            flex-shrink: 0;
             font-family: 'JetBrains Mono', monospace;
             color: var(--water-dark); font-size: 0.95rem;
         }
         .pra-group-body { padding: 4px 2px; }
         .pra-group-body.collapsed { display: none; }
+        .pra-keypad-toggle {
+            margin-left: auto; flex-shrink: 0;
+            background: var(--chalk); border: 2px solid var(--ink); border-radius: var(--radius);
+            padding: 5px 10px; font-size: 0.75rem; font-weight: 700; cursor: pointer;
+            box-shadow: var(--shadow-hard-sm); text-transform: uppercase; letter-spacing: 0.03em;
+        }
+        .pra-keypad-toggle:active { transform: translate(2px, 2px); box-shadow: none; }
+        .pra-keypad-toggle.on { background: var(--water); color: var(--chalk); border-color: var(--water-dark); }
         .pra-note {
             font-style: italic; font-size: 0.78rem; line-height: 1.45;
             color: #555;
@@ -448,8 +474,21 @@
         .tests-list {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
+        .date-group { border: 2px solid var(--ink); border-radius: var(--radius); overflow: hidden; }
+        .date-group-header {
+            display: flex; align-items: center; gap: 8px;
+            cursor: pointer; user-select: none;
+            background: var(--ink); color: var(--chalk);
+            padding: 10px 12px;
+            font-weight: 800; font-size: 0.85rem;
+        }
+        .date-group-header .pra-chevron { color: var(--chalk); }
+        .date-group-label { text-transform: uppercase; letter-spacing: 0.04em; }
+        .date-group-count { margin-left: auto; color: var(--cement); font-size: 0.78rem; font-weight: 600; }
+        .date-group-body { display: flex; flex-direction: column; gap: 8px; padding: 10px; }
+        .date-group-body.collapsed { display: none; }
         .test-item {
             background: var(--chalk);
             border-radius: var(--radius);
@@ -587,6 +626,46 @@
         }
         .status-saved { color: #6ee7b7; font-weight: 700; }
         .status-unsaved { color: #fdba74; font-weight: 700; }
+
+        /* PRA numeric keypad */
+        .keypad {
+            position: fixed; left: 0; right: 0; bottom: 0;
+            background: var(--ink);
+            border-top: 3px solid var(--water);
+            padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+            z-index: 1500;
+        }
+        .keypad-bar {
+            display: flex; align-items: center; gap: 8px;
+            color: var(--chalk); font-size: 0.75rem; margin-bottom: 8px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .keypad-group { font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; flex-shrink: 0; }
+        .keypad-row { color: var(--cement); flex-shrink: 0; }
+        .keypad-total { margin-left: auto; color: #6ee7b7; font-weight: 700; white-space: nowrap; }
+        .keypad-nav {
+            background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.3); color: var(--chalk);
+            width: 32px; height: 32px; border-radius: var(--radius); font-size: 0.9rem; cursor: pointer; flex-shrink: 0;
+        }
+        .keypad-nav:active { background: rgba(255,255,255,0.25); }
+        .keypad-done {
+            background: var(--success); color: var(--chalk); border: 2px solid #1b4d3a; border-radius: var(--radius);
+            padding: 6px 12px; font-size: 0.75rem; font-weight: 800; cursor: pointer; flex-shrink: 0;
+            text-transform: uppercase; letter-spacing: 0.03em;
+        }
+        .keypad-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+        }
+        .keypad-key {
+            min-height: 52px;
+            background: var(--paper); color: var(--ink); border: 2px solid var(--ink); border-radius: var(--radius);
+            font-size: 1.2rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; cursor: pointer;
+            box-shadow: var(--shadow-hard-sm);
+        }
+        .keypad-key:active { transform: translate(2px, 2px); box-shadow: none; }
+        .keypad-key-del { background: var(--danger); color: var(--chalk); border-color: #6b1619; }
+        .keypad-key-clear { background: var(--danger); color: var(--chalk); border-color: #6b1619; font-size: 1rem; }
+        .keypad-key-enter { background: var(--water); color: var(--chalk); border-color: var(--water-dark); font-size: 1.4rem; }
 
         /* Quick pressure presets */
         .quick-actions {
@@ -1076,12 +1155,15 @@
             </div>
 
             <div class="card">
-                <div class="card-title">&#128167; <span data-key="praData">Datos del Ensayo</span></div>
+                <div class="card-title">&#128167; <span data-key="praData">Datos del Ensayo</span>
+                    <button type="button" id="praKeypadToggle" class="pra-keypad-toggle" onclick="togglePraKeypadMode()">&#9000; <span data-key="praKeypadToggleLabel">Teclado app</span></button>
+                </div>
                 <div class="form-grid">
                     <div class="form-group pra-group" style="grid-column:1/-1">
                         <div class="pra-group-header" onclick="togglePraGroup('waterInicial')">
                             <span class="pra-chevron">&#9660;</span>
                             <span data-key="praAguaInicialPartials">Agua Inicial (pesos parciales)</span>
+                            <span class="pra-count"><span id="praWaterInicialCount">0</span> <span data-key="praPesadas">pesadas</span></span>
                             <span class="pra-total"><span data-key="praPartialTotal">Total:</span> <span id="praWaterInicialTotal">0</span> kg</span>
                         </div>
                         <div class="pra-group-body">
@@ -1092,6 +1174,7 @@
                         <div class="pra-group-header" onclick="togglePraGroup('waterSobrante')">
                             <span class="pra-chevron">&#9660;</span>
                             <span data-key="praAguaSobrantePartials">Agua Sobrante (pesos parciales)</span>
+                            <span class="pra-count"><span id="praWaterSobranteCount">0</span> <span data-key="praPesadas">pesadas</span></span>
                             <span class="pra-total"><span data-key="praPartialTotal">Total:</span> <span id="praWaterSobranteTotal">0</span> kg</span>
                         </div>
                         <div class="pra-group-body">
@@ -1102,6 +1185,7 @@
                         <div class="pra-group-header" onclick="togglePraGroup('suelo')">
                             <span class="pra-chevron">&#9660;</span>
                             <span data-key="praSueloPartials">Suelo Húmedo (pesos parciales)</span>
+                            <span class="pra-count"><span id="praSueloCount">0</span> <span data-key="praPesadas">pesadas</span></span>
                             <span class="pra-total"><span data-key="praPartialTotal">Total:</span> <span id="praSueloTotal">0</span> kg</span>
                         </div>
                         <p class="pra-note" data-key="praSueloNote">Nota: masa total del suelo húmedo excavado del pozo, incluyendo la roca.</p>
@@ -1113,6 +1197,7 @@
                         <div class="pra-group-header" onclick="togglePraGroup('water')">
                             <span class="pra-chevron">&#9660;</span>
                             <span data-key="praAguaPartials">Agua Agregada (pesos parciales)</span>
+                            <span class="pra-count"><span id="praWaterCount">0</span> <span data-key="praPesadas">pesadas</span></span>
                             <span class="pra-total"><span data-key="praPartialTotal">Total:</span> <span id="praWaterTotal">0</span> kg</span>
                         </div>
                         <div class="pra-group-body">
@@ -1123,6 +1208,7 @@
                         <div class="pra-group-header" onclick="togglePraGroup('roca')">
                             <span class="pra-chevron">&#9660;</span>
                             <span data-key="praRocaPartials">Roca (pesos parciales)</span>
+                            <span class="pra-count"><span id="praRocaCount">0</span> <span data-key="praPesadas">pesadas</span></span>
                             <span class="pra-total"><span data-key="praPartialTotal">Total:</span> <span id="praRocaTotal">0</span> kg</span>
                         </div>
                         <p class="pra-note" data-key="praRocaNote">Nota: la masa de roca se descuenta del suelo húmedo y del volumen de agua en los cálculos.</p>
@@ -1134,6 +1220,33 @@
                         <label data-key="praHumedad">Humedad (%)</label>
                         <input type="text" inputmode="decimal" id="praHumedad" onchange="calcPra()">
                     </div>
+                </div>
+            </div>
+
+            <div id="praKeypad" class="keypad" hidden>
+                <div class="keypad-bar">
+                    <span class="keypad-group" id="praKeypadGroup">-</span>
+                    <span class="keypad-row" id="praKeypadRow">-</span>
+                    <span class="keypad-total" id="praKeypadTotal">-</span>
+                    <button type="button" class="keypad-nav" onclick="focusPraRow(praKeypadActiveInput, -1)">&#8593;</button>
+                    <button type="button" class="keypad-nav" onclick="focusPraRow(praKeypadActiveInput, 1)">&#8595;</button>
+                    <button type="button" class="keypad-done" onclick="closePraKeypad()" data-key="praKeypadDone">Listo</button>
+                </div>
+                <div class="keypad-grid">
+                    <button type="button" class="keypad-key" data-key-digit="7">7</button>
+                    <button type="button" class="keypad-key" data-key-digit="8">8</button>
+                    <button type="button" class="keypad-key" data-key-digit="9">9</button>
+                    <button type="button" class="keypad-key keypad-key-del" data-key-action="back">&#9003;</button>
+                    <button type="button" class="keypad-key" data-key-digit="4">4</button>
+                    <button type="button" class="keypad-key" data-key-digit="5">5</button>
+                    <button type="button" class="keypad-key" data-key-digit="6">6</button>
+                    <button type="button" class="keypad-key keypad-key-enter" data-key-action="enter" style="grid-row: span 3">&#9166;</button>
+                    <button type="button" class="keypad-key" data-key-digit="1">1</button>
+                    <button type="button" class="keypad-key" data-key-digit="2">2</button>
+                    <button type="button" class="keypad-key" data-key-digit="3">3</button>
+                    <button type="button" class="keypad-key" data-key-digit=",">,</button>
+                    <button type="button" class="keypad-key" data-key-digit="0">0</button>
+                    <button type="button" class="keypad-key keypad-key-clear" data-key-action="clear">C</button>
                 </div>
             </div>
 
@@ -1306,9 +1419,9 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const APP_VERSION = '1.1.16';
+        const APP_VERSION = '1.1.17';
 
-        const SW_VERSION = 'campolab-v1.1.16';
+        const SW_VERSION = 'campolab-v1.1.17';
         // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
         const WATER_DENSITY_TABLE = {};
         const waterDensityBase = {
@@ -1343,6 +1456,9 @@
                 cardPraDesc: "Reemplazo con agua",
                 savedTests: "Ensayos Guardados",
                 noTests: "No hay ensayos guardados",
+                dateToday: "Hoy",
+                dateYesterday: "Ayer",
+                noDate: "Sin fecha",
                 btnBack: "Volver",
                 btnForceUpdate: "Forzar actualización",
                 updateText: "Nueva versión disponible",
@@ -1433,6 +1549,9 @@
                 praDensidadHumeda: "Densidad Húmeda (g/cm³)",
                 praDensidadSeca: "Densidad Seca (g/cm³)",
                 praCompactacion: "Compactación (%)",
+                praKeypadToggleLabel: "Teclado app",
+                praKeypadDone: "Listo",
+                praPesadas: "pesadas",
                 cardGran: "Granulometría",
                 cardGranDesc: "Análisis por tamizado",
                 granTitle: "GRANULOMETRÍA",
@@ -1480,6 +1599,9 @@
                 cardPraDesc: "Sand cone replacement",
                 savedTests: "Saved Tests",
                 noTests: "No saved tests",
+                dateToday: "Today",
+                dateYesterday: "Yesterday",
+                noDate: "No date",
                 btnBack: "Back",
                 btnForceUpdate: "Force update",
                 updateText: "New version available",
@@ -1570,6 +1692,9 @@
                 praDensidadHumeda: "Wet Density (g/cm³)",
                 praDensidadSeca: "Dry Density (g/cm³)",
                 praCompactacion: "Compaction (%)",
+                praKeypadToggleLabel: "App keypad",
+                praKeypadDone: "Done",
+                praPesadas: "weighings",
                 cardGran: "Granulometry",
                 cardGranDesc: "Sieve analysis",
                 granTitle: "GRANULOMETRY",
@@ -1623,6 +1748,14 @@
 
         let updateWaitingSW = null;
 
+        // PRA keypad state
+        let praKeypadMode = false;
+        let praKeypadActiveInput = null;
+
+        // Home tests list state: explicit open(true)/closed(false) overrides per date group,
+        // keyed by date string. A date with no entry defaults to open only if it is the most recent.
+        let testsDateState = {};
+
         // Timer state
         let timerRunning = false;
         let timerStartTime = 0;
@@ -1642,6 +1775,7 @@
             initPraDate();
             setupInputs();
             initSignaturePads();
+            initPraKeypad();
             applyLang();
             showView('homeView');
             renderTestsList();
@@ -1663,6 +1797,7 @@
         }
 
         function showView(id) {
+            if (id !== 'praView') closePraKeypad();
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             document.getElementById('fabGraph').style.display = (id === 'presioView') ? 'flex' : 'none';
@@ -1729,6 +1864,11 @@
             }
             const rawLang = localStorage.getItem('lang');
             if (rawLang) lang = rawLang;
+            praKeypadMode = localStorage.getItem('praKeypadMode') === '1';
+            const rawDateState = localStorage.getItem('testsDateState');
+            if (rawDateState) {
+                try { testsDateState = JSON.parse(rawDateState); } catch(e) { testsDateState = {}; }
+            }
         }
 
         function saveStorage() {
@@ -2279,12 +2419,19 @@
 
         // ==================== PRA ====================
         const PRA_PARTIALS = {
-            waterInicial: { container: 'waterInicialPartials', total: 'praWaterInicialTotal' },
-            waterSobrante: { container: 'waterSobrantePartials', total: 'praWaterSobranteTotal' },
-            water: { container: 'waterPartials', total: 'praWaterTotal' },
-            suelo: { container: 'sueloPartials', total: 'praSueloTotal' },
-            roca: { container: 'rocaPartials', total: 'praRocaTotal' }
+            waterInicial: { container: 'waterInicialPartials', total: 'praWaterInicialTotal', count: 'praWaterInicialCount', labelKey: 'praAguaInicialPartials' },
+            waterSobrante: { container: 'waterSobrantePartials', total: 'praWaterSobranteTotal', count: 'praWaterSobranteCount', labelKey: 'praAguaSobrantePartials' },
+            water: { container: 'waterPartials', total: 'praWaterTotal', count: 'praWaterCount', labelKey: 'praAguaPartials' },
+            suelo: { container: 'sueloPartials', total: 'praSueloTotal', count: 'praSueloCount', labelKey: 'praSueloPartials' },
+            roca: { container: 'rocaPartials', total: 'praRocaTotal', count: 'praRocaCount', labelKey: 'praRocaPartials' }
         };
+
+        function praGroupInputs(type) {
+            const info = PRA_PARTIALS[type];
+            if (!info) return [];
+            const container = document.getElementById(info.container);
+            return container ? Array.from(container.querySelectorAll('.praPartial')) : [];
+        }
 
         function addPraPartial(type, value, focus = false) {
             const info = PRA_PARTIALS[type];
@@ -2293,18 +2440,18 @@
             const container = document.getElementById(info.container);
             const row = document.createElement('div');
             row.className = 'partial-row pra-partial-item';
-            row.innerHTML = `<input type="text" inputmode="decimal" enterkeyhint="next" class="praPartial" data-type="${type}" data-placeholder-key="praAddWeightPlaceholder" placeholder="${T[lang].praAddWeightPlaceholder}"
+            row.innerHTML = `<input type="text" inputmode="${praKeypadMode ? 'none' : 'decimal'}" enterkeyhint="next" class="praPartial" data-type="${type}" data-placeholder-key="praAddWeightPlaceholder" placeholder="${T[lang].praAddWeightPlaceholder}"
                              oninput="handlePraRowInput(this)" onkeydown="handlePraRowKey(event, this)">
                              <button class="remove-btn" onclick="removePraPartial(this)" type="button">×</button>`;
             row.querySelector('.praPartial').value = raw;
             container.appendChild(row);
-            updatePraPartials();
+            updatePraPartials(type);
             if (focus) row.querySelector('.praPartial').focus();
             return row;
         }
 
         function ensureEmptyPraRow(type) {
-            const inputs = document.querySelectorAll(`.praPartial[data-type="${type}"]`);
+            const inputs = praGroupInputs(type);
             if (inputs.length === 0 || inputs[inputs.length - 1].value.trim() !== '') {
                 addPraPartial(type, '');
             }
@@ -2312,29 +2459,33 @@
 
         function handlePraRowInput(input) {
             const type = input.dataset.type;
-            const inputs = document.querySelectorAll(`.praPartial[data-type="${type}"]`);
-            if (inputs[inputs.length - 1] === input && input.value.trim() !== '') {
+            const inputs = praGroupInputs(type);
+            if (inputs.length && inputs[inputs.length - 1] === input && input.value.trim() !== '') {
                 ensureEmptyPraRow(type);
             }
-            updatePraPartials();
+            updatePraPartials(type);
+            updatePraKeypadBar(input);
+        }
+
+        function focusPraRow(input, delta) {
+            if (!input || !input.dataset) return;
+            const type = input.dataset.type;
+            if (!PRA_PARTIALS[type]) return;
+            if (delta > 0) ensureEmptyPraRow(type);
+            const inputs = praGroupInputs(type);
+            const idx = inputs.indexOf(input);
+            if (idx === -1) return;
+            const next = inputs[idx + delta];
+            if (next) {
+                next.focus();
+                next.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }
 
         function handlePraRowKey(event, input) {
             if (event.key !== 'Enter') return;
             event.preventDefault();
-            const type = input.dataset.type;
-            ensureEmptyPraRow(type);
-            const inputs = document.querySelectorAll(`.praPartial[data-type="${type}"]`);
-            for (let i = 0; i < inputs.length; i++) {
-                if (inputs[i] === input) {
-                    const next = inputs[i + 1];
-                    if (next) {
-                        next.focus();
-                        next.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    }
-                    break;
-                }
-            }
+            focusPraRow(input, 1);
         }
 
         function togglePraGroup(type) {
@@ -2353,25 +2504,132 @@
             const input = row.querySelector('.praPartial');
             const type = input ? input.dataset.type : null;
             row.remove();
-            if (type) ensureEmptyPraRow(type);
-            updatePraPartials();
+            if (type) {
+                ensureEmptyPraRow(type);
+                updatePraPartials(type);
+            }
         }
 
-        function updatePraPartials() {
-            Object.keys(PRA_PARTIALS).forEach(type => {
-                const inputs = document.querySelectorAll(`.praPartial[data-type="${type}"]`);
-                let total = 0;
-                inputs.forEach(input => {
-                    total += parseNum(input.value) || 0;
+        function updatePraPartials(type) {
+            const types = type ? [type] : Object.keys(PRA_PARTIALS);
+            types.forEach(t => {
+                const info = PRA_PARTIALS[t];
+                if (!info) return;
+                let total = 0, count = 0;
+                praGroupInputs(t).forEach(input => {
+                    const v = input.value.trim();
+                    if (v !== '') { total += parseNum(v) || 0; count++; }
                 });
-                const totalEl = document.getElementById(PRA_PARTIALS[type].total);
+                const totalEl = document.getElementById(info.total);
                 if (totalEl) totalEl.textContent = total.toFixed(3).replace(/\.?0+$/, '').replace('.', ',');
+                const countEl = document.getElementById(info.count);
+                if (countEl) countEl.textContent = count;
             });
             calcPra();
         }
 
         function getPraPartials(type) {
-            return Array.from(document.querySelectorAll(`.praPartial[data-type="${type}"]`)).map(input => input.value);
+            return praGroupInputs(type).map(input => input.value);
+        }
+
+        // ---- Numeric keypad (replaces the system keyboard while entering partial weights) ----
+        function togglePraKeypadMode() {
+            praKeypadMode = !praKeypadMode;
+            localStorage.setItem('praKeypadMode', praKeypadMode ? '1' : '0');
+            applyPraKeypadMode();
+            if (!praKeypadMode) closePraKeypad();
+        }
+
+        function applyPraKeypadMode() {
+            const btn = document.getElementById('praKeypadToggle');
+            if (btn) btn.classList.toggle('on', praKeypadMode);
+            document.querySelectorAll('.praPartial').forEach(input => {
+                input.setAttribute('inputmode', praKeypadMode ? 'none' : 'decimal');
+            });
+        }
+
+        function initPraKeypad() {
+            applyPraKeypadMode();
+            const panel = document.getElementById('praKeypad');
+            const view = document.getElementById('praView');
+            if (!panel || !view) return;
+            view.addEventListener('focusin', (e) => {
+                if (e.target.classList && e.target.classList.contains('praPartial')) {
+                    if (praKeypadMode) openPraKeypad(e.target);
+                } else if (!panel.contains(e.target)) {
+                    closePraKeypad();
+                }
+            });
+            panel.addEventListener('pointerdown', (e) => {
+                if (e.target.closest('button')) e.preventDefault();
+            });
+            panel.addEventListener('click', (e) => {
+                const keyBtn = e.target.closest('.keypad-key');
+                if (!keyBtn || !praKeypadActiveInput) return;
+                const input = praKeypadActiveInput;
+                if (keyBtn.dataset.keyDigit !== undefined) {
+                    praKeypadInsert(input, keyBtn.dataset.keyDigit);
+                } else if (keyBtn.dataset.keyAction === 'back') {
+                    input.value = input.value.slice(0, -1);
+                    handlePraRowInput(input);
+                } else if (keyBtn.dataset.keyAction === 'clear') {
+                    input.value = '';
+                    handlePraRowInput(input);
+                } else if (keyBtn.dataset.keyAction === 'enter') {
+                    focusPraRow(input, 1);
+                }
+            });
+        }
+
+        function praKeypadInsert(input, ch) {
+            if (ch === ',') {
+                if (input.value.includes(',') || input.value.includes('.')) return;
+                input.value += ',';
+            } else {
+                input.value += ch;
+            }
+            handlePraRowInput(input);
+        }
+
+        function openPraKeypad(input) {
+            if (!praKeypadMode) return;
+            const panel = document.getElementById('praKeypad');
+            if (!panel) return;
+            document.querySelectorAll('.partial-row.active-row').forEach(r => r.classList.remove('active-row'));
+            praKeypadActiveInput = input;
+            panel.hidden = false;
+            const view = document.getElementById('praView');
+            if (view) view.style.paddingBottom = (panel.offsetHeight + 16) + 'px';
+            const row = input.closest('.partial-row');
+            if (row) row.classList.add('active-row');
+            updatePraKeypadBar(input);
+        }
+
+        function closePraKeypad() {
+            const panel = document.getElementById('praKeypad');
+            if (!panel || panel.hidden) return;
+            panel.hidden = true;
+            const view = document.getElementById('praView');
+            if (view) view.style.paddingBottom = '';
+            document.querySelectorAll('.partial-row.active-row').forEach(r => r.classList.remove('active-row'));
+            praKeypadActiveInput = null;
+        }
+
+        function updatePraKeypadBar(input) {
+            const panel = document.getElementById('praKeypad');
+            if (!panel || panel.hidden || !input || !input.dataset) return;
+            const type = input.dataset.type;
+            const info = PRA_PARTIALS[type];
+            if (!info) return;
+            const groupEl = document.getElementById('praKeypadGroup');
+            if (groupEl) groupEl.textContent = T[lang][info.labelKey] || '';
+            const inputs = praGroupInputs(type);
+            const idx = inputs.indexOf(input);
+            const rowEl = document.getElementById('praKeypadRow');
+            if (rowEl) rowEl.textContent = (idx + 1) + ' / ' + inputs.length;
+            const totalEl = document.getElementById(info.total);
+            const kTotalEl = document.getElementById('praKeypadTotal');
+            if (kTotalEl) kTotalEl.textContent = (T[lang].praPartialTotal || 'Total:') + ' ' + (totalEl ? totalEl.textContent : '0') + ' kg';
         }
 
         function clearPraForm() {
@@ -2387,8 +2645,10 @@
             document.getElementById('praDensidadSecaMax').value = '2.134';
             document.getElementById('praDensidadRoca').value = '2800';
             Object.keys(PRA_PARTIALS).forEach(type => {
-                document.getElementById(PRA_PARTIALS[type].container).innerHTML = '';
-                document.getElementById(PRA_PARTIALS[type].total).textContent = '0';
+                const info = PRA_PARTIALS[type];
+                document.getElementById(info.container).innerHTML = '';
+                document.getElementById(info.total).textContent = '0';
+                document.getElementById(info.count).textContent = '0';
                 ensureEmptyPraRow(type);
             });
             document.getElementById('praHumedad').value = '';
@@ -2399,6 +2659,7 @@
             document.getElementById('resDensidadSeca').textContent = '-';
             document.getElementById('resCompactacion').textContent = '-';
             clearSignature('praSignature');
+            closePraKeypad();
         }
 
         function loadPraTest(id) {
@@ -2992,36 +3253,91 @@
                 list.innerHTML = `<div class="empty-state">${T[lang].noTests}</div>`;
                 return;
             }
+            const groups = new Map();
             all.forEach(t => {
-                const item = document.createElement('div');
-                item.className = 'test-item';
-                let meta = '';
-                let icon = '&#128203;';
-                if (t.type === 'presio') {
-                    meta = `${t.project || ''} &bull; ${t.date}`;
-                    icon = '&#128200;';
-                } else if (t.type === 'pra') {
-                    const comp = t.results && t.results.compactacion ? t.results.compactacion.toFixed(2) + '%' : '-';
-                    const ds = t.results && t.results.densidadSeca ? t.results.densidadSeca.toFixed(3) + ' g/cm³' : '-';
-                    meta = `C: ${comp} &bull; DS: ${ds} &bull; ${t.date}`;
-                    icon = '&#128167;';
-                } else {
-                    const mat = t.data && t.data.tipoMaterial ? t.data.tipoMaterial : '';
-                    meta = `${mat} &bull; ${t.date}`;
-                    icon = '&#9878;';
-                }
-                item.innerHTML = `
-                    <div class="test-info">
-                        <div class="test-name">${escapeHtml(t.name)} ${icon}</div>
-                        <div class="test-meta">${meta}</div>
-                    </div>
-                    <div class="test-actions">
-                        <button class="btn btn-primary btn-small" onclick="editTest('${t.type}','${t.id}')">${T[lang].btnEdit}</button>
-                        <button class="btn btn-danger btn-small" onclick="deleteTest('${t.type}','${t.id}')">${T[lang].btnDelete}</button>
-                    </div>
-                `;
-                list.appendChild(item);
+                const key = t.date || '';
+                if (!groups.has(key)) groups.set(key, []);
+                groups.get(key).push(t);
             });
+            const dateKeys = Array.from(groups.keys()).sort((a, b) => {
+                if (!a) return 1;
+                if (!b) return -1;
+                return new Date(b) - new Date(a);
+            });
+            const mostRecentKey = dateKeys[0];
+            const todayStr = new Date().toISOString().split('T')[0];
+            const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+            const icons = { presio: '&#128200;', pra: '&#128167;', gran: '&#9878;' };
+            dateKeys.forEach(key => {
+                const items = groups.get(key);
+                const isOpen = Object.prototype.hasOwnProperty.call(testsDateState, key)
+                    ? testsDateState[key]
+                    : key === mostRecentKey;
+                let label;
+                if (!key) {
+                    label = T[lang].noDate;
+                } else if (key === todayStr) {
+                    label = T[lang].dateToday;
+                } else if (key === yesterdayStr) {
+                    label = T[lang].dateYesterday;
+                } else {
+                    const d = new Date(key + 'T00:00:00');
+                    label = isNaN(d) ? key : d.toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+                }
+                const chips = ['presio', 'pra', 'gran'].map(ty => {
+                    const n = items.filter(i => i.type === ty).length;
+                    return n ? `${icons[ty]} ${n}` : '';
+                }).filter(Boolean).join(' &bull; ');
+                const group = document.createElement('div');
+                group.className = 'date-group';
+                const header = document.createElement('div');
+                header.className = 'date-group-header';
+                header.innerHTML = `<span class="pra-chevron${isOpen ? '' : ' collapsed'}">&#9660;</span><span class="date-group-label">${escapeHtml(label)}</span><span class="date-group-count">${chips}</span>`;
+                header.addEventListener('click', () => toggleDateGroup(key, isOpen));
+                const body = document.createElement('div');
+                body.className = 'date-group-body' + (isOpen ? '' : ' collapsed');
+                items.forEach(t => body.appendChild(buildTestItem(t)));
+                group.appendChild(header);
+                group.appendChild(body);
+                list.appendChild(group);
+            });
+        }
+
+        function buildTestItem(t) {
+            const item = document.createElement('div');
+            item.className = 'test-item';
+            let meta = '';
+            let icon = '&#128203;';
+            if (t.type === 'presio') {
+                meta = `${t.project || ''} &bull; ${t.date}`;
+                icon = '&#128200;';
+            } else if (t.type === 'pra') {
+                const comp = t.results && t.results.compactacion ? t.results.compactacion.toFixed(2) + '%' : '-';
+                const ds = t.results && t.results.densidadSeca ? t.results.densidadSeca.toFixed(3) + ' g/cm³' : '-';
+                meta = `C: ${comp} &bull; DS: ${ds} &bull; ${t.date}`;
+                icon = '&#128167;';
+            } else {
+                const mat = t.data && t.data.tipoMaterial ? t.data.tipoMaterial : '';
+                meta = `${mat} &bull; ${t.date}`;
+                icon = '&#9878;';
+            }
+            item.innerHTML = `
+                <div class="test-info">
+                    <div class="test-name">${escapeHtml(t.name)} ${icon}</div>
+                    <div class="test-meta">${meta}</div>
+                </div>
+                <div class="test-actions">
+                    <button class="btn btn-primary btn-small" onclick="editTest('${t.type}','${t.id}')">${T[lang].btnEdit}</button>
+                    <button class="btn btn-danger btn-small" onclick="deleteTest('${t.type}','${t.id}')">${T[lang].btnDelete}</button>
+                </div>
+            `;
+            return item;
+        }
+
+        function toggleDateGroup(key, wasOpen) {
+            testsDateState[key] = !wasOpen;
+            localStorage.setItem('testsDateState', JSON.stringify(testsDateState));
+            renderTestsList();
         }
 
         function escapeHtml(text) {
@@ -3334,8 +3650,7 @@
                     { type: 'roca', label: T[lang].praRocaPartials || 'Roca' }
                 ];
                 partialTypes.forEach(pt => {
-                    const inputs = document.querySelectorAll(`.praPartial[data-type="${pt.type}"]`);
-                    const values = Array.from(inputs).map(i => i.value.trim()).filter(x => x !== '');
+                    const values = praGroupInputs(pt.type).map(i => i.value.trim()).filter(x => x !== '');
                     const totalId = PRA_PARTIALS[pt.type]?.total;
                     const total = totalId ? document.getElementById(totalId)?.textContent || '0' : '0';
                     body += section(`${pt.label} (kg)`, values.length
@@ -3421,6 +3736,8 @@
 
         function updateStatus() {
             const el = document.getElementById('statusText');
+            const wantClass = changed ? 'status-unsaved' : 'status-saved';
+            if (el.className === wantClass) return;
             if (changed) {
                 el.className = 'status-unsaved';
                 el.innerHTML = `&#9679; ${T[lang].statusUnsaved}`;

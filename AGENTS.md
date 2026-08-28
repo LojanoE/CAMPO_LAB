@@ -2,18 +2,19 @@
 
 ## Project overview
 
-`CAMPO_LAB` is a client-side, single-file mobile Progressive Web App (PWA) for geotechnical field work. It contains two independent calculation modules:
+`CAMPO_LAB` is a client-side, single-file mobile Progressive Web App (PWA) for geotechnical field work. It contains three independent calculation modules:
 
 1. **Presiómetro** — pressuremeter test data entry, correction calculations, creep values, P-V graph, and Excel export.
-2. **Densidad por Reemplazo con Agua (PRA)** — water-replacement density test with partial-weight inputs, volume/density/compaction results, and rock-mass correction.
+2. **Densidad por Reemplazo con Agua (PRA)** — water-replacement density test with partial-weight inputs, an on-screen numeric keypad for fast field entry, volume/density/compaction results, and rock-mass correction.
+3. **Granulometría** — sieve analysis (particle size distribution) with retained/passing percentages and Excel export.
 
 There is no build system, package manager, backend, or CI. Everything is plain HTML/CSS/JavaScript. The app is meant to run offline after the first load via a Service Worker.
 
-Current version: `1.1.16` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
+Current version: `1.1.17` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
 
 ## Repository layout
 
-- `index.html` — Single-file app containing markup, CSS, and all application JavaScript (~2,200 lines).
+- `index.html` — Single-file app containing markup, CSS, and all application JavaScript (~3,800 lines).
 - `sw.js` — Service Worker that caches the app and its assets for offline use.
 - `chart.js` — Vendored copy of Chart.js v4.4.7 (UMD build), used for the pressuremeter P-V curve.
 - `xlsx.js` — Vendored copy of SheetJS `xlsx.js` (used only for pressuremeter Excel export).
@@ -31,7 +32,7 @@ No configuration files such as `package.json`, `pyproject.toml`, `Cargo.toml`, e
 - **Languages:** HTML5, CSS3, vanilla JavaScript (ES6+).
 - **Charts:** Chart.js v4.4.7 (local UMD file).
 - **Excel generation:** SheetJS `xlsx.js` (local UMD file).
-- **Storage:** `localStorage` only (`presioTests`, `praTests`, `lang`).
+- **Storage:** `localStorage` only (`presioTests`, `praTests`, `granTests`, `lang`, `praKeypadMode`, `testsDateState`).
 - **Offline:** Service Worker (`sw.js`) with network/cache strategies based on connection quality.
 - **PWA:** Web App Manifest + icons; installable as `standalone`.
 
@@ -143,16 +144,29 @@ Old PRA tests saved with single mass values are loaded as the first partial row 
 
 There is currently no Excel export for the PRA module. All three modules include a native **Exportar PDF** button that opens a print-formatted "Mina Mirador" field record sheet with a signature block; the user saves it as PDF from the browser print dialog. Each module also provides an inline signature pad so the operator can sign directly on screen; the signature is saved with the test and rendered in the PDF.
 
+#### PRA numeric keypad and row ergonomics
+
+Field crews enter 20–50 partial weights per group, so PRA has extra input ergonomics on top of the auto-adding rows above:
+
+- A **⌨ Teclado app** toggle in the "Datos del Ensayo" card header (`togglePraKeypadMode()`, `index.html`) switches partial-weight rows between the OS keyboard (`inputmode="decimal"`, default) and a fixed on-screen numeric keypad (`inputmode="none"`, `#praKeypad`) so the system keyboard never covers the row list on a phone. The preference persists in `localStorage['praKeypadMode']`.
+- Focusing a partial-weight input opens the keypad (`openPraKeypad`) when the mode is on; it shows the active group name, `row / total rows`, and the running total, with `↑`/`↓` to move between rows and digit/comma/backspace/clear keys. Keys use `pointerdown` + `preventDefault()` so tapping them never blurs the focused input. `Listo` closes the panel (`closePraKeypad`); navigating to another view also closes it.
+- `focusPraRow(input, delta)` is the shared row-navigation helper used by the keypad's `⏎`/`↑`/`↓`, by `Enter` on a physical keyboard, and by the keypad's `enter` key.
+- Each `.pra-group-header` is `position: sticky; top: 0`, and each group shows a live weighing count (`N pesadas`) next to its total, so the running total stays visible while scrolling a long list. Partial rows are numbered with a CSS counter (no JS cost per row).
+- `updatePraPartials(type)` recalculates only the touched group (scoped to its container) instead of all five groups on every keystroke, since the keypad can fire many updates per second.
+
 ## Data persistence
 
 - `presioTests` — array of saved pressuremeter tests.
 - `praTests` — array of saved PRA tests.
+- `granTests` — array of saved granulometry tests.
 - `lang` — current UI language (`es` or `en`).
+- `praKeypadMode` — `'1'`/`'0'`, whether the PRA numeric keypad replaces the system keyboard.
+- `testsDateState` — JSON object of explicit open/closed overrides for the home screen's date groups (see below), keyed by `YYYY-MM-DD`.
 - Legacy key `presioData` is migrated automatically on first load and then removed.
 - Saving:
   - `Ctrl/Cmd + S` triggers `saveCurrent()`.
   - Autosave runs every 30 seconds while `changed === true`.
-  - The home screen lists saved tests from both modules, sorted by date (newest first).
+  - The home screen groups saved tests from all three modules by date (`renderTestsList()`), newest date first, each date as a collapsible section (`.date-group`) with per-module counts. Only the most recent date is expanded by default; a user's explicit expand/collapse choices persist in `testsDateState` across reloads.
 
 ## Service Worker and offline behavior
 
