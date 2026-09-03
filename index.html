@@ -642,11 +642,11 @@
         }
         .keypad-group { font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; flex-shrink: 0; }
         .keypad-row { color: var(--cement); flex-shrink: 0; }
-        .keypad-total { margin-left: auto; color: #6ee7b7; font-weight: 700; white-space: nowrap; }
         .keypad-nav {
             background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.3); color: var(--chalk);
             width: 32px; height: 32px; border-radius: var(--radius); font-size: 0.9rem; cursor: pointer; flex-shrink: 0;
         }
+        .keypad-nav:first-of-type { margin-left: auto; }
         .keypad-nav:active { background: rgba(255,255,255,0.25); }
         .keypad-done {
             background: var(--success); color: var(--chalk); border: 2px solid #1b4d3a; border-radius: var(--radius);
@@ -666,6 +666,7 @@
         .keypad-key-del { background: var(--danger); color: var(--chalk); border-color: #6b1619; }
         .keypad-key-clear { background: var(--danger); color: var(--chalk); border-color: #6b1619; font-size: 1rem; }
         .keypad-key-enter { background: var(--water); color: var(--chalk); border-color: var(--water-dark); font-size: 1.4rem; }
+        .keypad-key-neg { font-size: 1.4rem; }
 
         /* Quick pressure presets */
         .quick-actions {
@@ -1154,7 +1155,7 @@
                 </div>
             </div>
 
-            <div class="card">
+            <div class="card" id="praDataCard">
                 <div class="card-title">&#128167; <span data-key="praData">Datos del Ensayo</span>
                     <button type="button" id="praKeypadToggle" class="pra-keypad-toggle" onclick="togglePraKeypadMode()">&#9000; <span data-key="praKeypadToggleLabel">Teclado app</span></button>
                 </div>
@@ -1227,7 +1228,6 @@
                 <div class="keypad-bar">
                     <span class="keypad-group" id="praKeypadGroup">-</span>
                     <span class="keypad-row" id="praKeypadRow">-</span>
-                    <span class="keypad-total" id="praKeypadTotal">-</span>
                     <button type="button" class="keypad-nav" onclick="focusPraRow(praKeypadActiveInput, -1)">&#8593;</button>
                     <button type="button" class="keypad-nav" onclick="focusPraRow(praKeypadActiveInput, 1)">&#8595;</button>
                     <button type="button" class="keypad-done" onclick="closePraKeypad()" data-key="praKeypadDone">Listo</button>
@@ -1240,13 +1240,14 @@
                     <button type="button" class="keypad-key" data-key-digit="4">4</button>
                     <button type="button" class="keypad-key" data-key-digit="5">5</button>
                     <button type="button" class="keypad-key" data-key-digit="6">6</button>
-                    <button type="button" class="keypad-key keypad-key-enter" data-key-action="enter" style="grid-row: span 3">&#9166;</button>
+                    <button type="button" class="keypad-key keypad-key-enter" data-key-action="enter" style="grid-row: span 2">&#9166;</button>
                     <button type="button" class="keypad-key" data-key-digit="1">1</button>
                     <button type="button" class="keypad-key" data-key-digit="2">2</button>
                     <button type="button" class="keypad-key" data-key-digit="3">3</button>
                     <button type="button" class="keypad-key" data-key-digit=",">,</button>
                     <button type="button" class="keypad-key" data-key-digit="0">0</button>
                     <button type="button" class="keypad-key keypad-key-clear" data-key-action="clear">C</button>
+                    <button type="button" class="keypad-key keypad-key-neg" data-key-action="negate">&minus;</button>
                 </div>
             </div>
 
@@ -1419,9 +1420,9 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const APP_VERSION = '1.1.17';
+        const APP_VERSION = '1.1.18';
 
-        const SW_VERSION = 'campolab-v1.1.17';
+        const SW_VERSION = 'campolab-v1.1.18';
         // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
         const WATER_DENSITY_TABLE = {};
         const waterDensityBase = {
@@ -1776,6 +1777,7 @@
             setupInputs();
             initSignaturePads();
             initPraKeypad();
+            initViewportPin();
             applyLang();
             showView('homeView');
             renderTestsList();
@@ -1864,7 +1866,7 @@
             }
             const rawLang = localStorage.getItem('lang');
             if (rawLang) lang = rawLang;
-            praKeypadMode = localStorage.getItem('praKeypadMode') === '1';
+            praKeypadMode = localStorage.getItem('praKeypadMode') !== '0';
             const rawDateState = localStorage.getItem('testsDateState');
             if (rawDateState) {
                 try { testsDateState = JSON.parse(rawDateState); } catch(e) { testsDateState = {}; }
@@ -2503,10 +2505,20 @@
             if (!row) return;
             const input = row.querySelector('.praPartial');
             const type = input ? input.dataset.type : null;
+            const wasActive = praKeypadMode && input === praKeypadActiveInput;
             row.remove();
             if (type) {
                 ensureEmptyPraRow(type);
                 updatePraPartials(type);
+                if (wasActive) {
+                    // The active row was deleted: praKeypadActiveInput now points to a
+                    // detached node, which would silently break ↑/↓/Enter navigation.
+                    // Re-focus a live row (this re-opens the keypad on it) or close it.
+                    const inputs = praGroupInputs(type);
+                    const fallback = inputs[inputs.length - 1];
+                    if (fallback) fallback.focus();
+                    else closePraKeypad();
+                }
             }
         }
 
@@ -2548,6 +2560,27 @@
             });
         }
 
+        // ---- Keep the bottom status bar and FAB stack pinned to the visible screen ----
+        // `position: fixed; bottom: 0` is relative to the layout viewport, but when the
+        // on-screen keyboard opens, mobile browsers (iOS Safari especially, some Android
+        // WebViews too) don't reliably resize the layout viewport to match — the fixed
+        // footer/FABs end up floating mid-screen or jumping as the keyboard animates in
+        // and out. The Visual Viewport API reports the actually-visible area, so we use
+        // it to shift these elements up by exactly the keyboard's height.
+        function initViewportPin() {
+            const vv = window.visualViewport;
+            if (!vv) return;
+            const pinned = [document.querySelector('.status-bar'), document.querySelector('.fab-container')].filter(Boolean);
+            if (!pinned.length) return;
+            function reposition() {
+                const offset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
+                pinned.forEach(el => { el.style.transform = offset ? `translateY(-${offset}px)` : ''; });
+            }
+            vv.addEventListener('resize', reposition);
+            vv.addEventListener('scroll', reposition);
+            reposition();
+        }
+
         function initPraKeypad() {
             applyPraKeypadMode();
             const panel = document.getElementById('praKeypad');
@@ -2560,6 +2593,19 @@
                     closePraKeypad();
                 }
             });
+            // Safari on iOS does not move focus to a plain <button> on tap, so tapping
+            // "Guardar", "Exportar PDF", etc. while the keypad is open never fires the
+            // focusin handler above and the keypad panel is left covering the screen.
+            // Close it on any tap outside both the keypad panel and the "Datos del
+            // Ensayo" card (which owns the partial-weight rows and their × remove
+            // buttons), regardless of whether that tap actually changes focus.
+            const dataCard = document.getElementById('praDataCard');
+            document.addEventListener('pointerdown', (e) => {
+                if (panel.hidden) return;
+                if (panel.contains(e.target)) return;
+                if (dataCard && dataCard.contains(e.target)) return;
+                closePraKeypad();
+            }, true);
             panel.addEventListener('pointerdown', (e) => {
                 if (e.target.closest('button')) e.preventDefault();
             });
@@ -2577,8 +2623,17 @@
                     handlePraRowInput(input);
                 } else if (keyBtn.dataset.keyAction === 'enter') {
                     focusPraRow(input, 1);
+                } else if (keyBtn.dataset.keyAction === 'negate') {
+                    praKeypadNegate(input);
                 }
             });
+        }
+
+        function praKeypadNegate(input) {
+            if (!input.value.startsWith('-')) {
+                input.value = '-' + input.value;
+                handlePraRowInput(input);
+            }
         }
 
         function praKeypadInsert(input, ch) {
@@ -2612,6 +2667,7 @@
             const view = document.getElementById('praView');
             if (view) view.style.paddingBottom = '';
             document.querySelectorAll('.partial-row.active-row').forEach(r => r.classList.remove('active-row'));
+            if (praKeypadActiveInput) praKeypadActiveInput.blur();
             praKeypadActiveInput = null;
         }
 
@@ -2627,9 +2683,6 @@
             const idx = inputs.indexOf(input);
             const rowEl = document.getElementById('praKeypadRow');
             if (rowEl) rowEl.textContent = (idx + 1) + ' / ' + inputs.length;
-            const totalEl = document.getElementById(info.total);
-            const kTotalEl = document.getElementById('praKeypadTotal');
-            if (kTotalEl) kTotalEl.textContent = (T[lang].praPartialTotal || 'Total:') + ' ' + (totalEl ? totalEl.textContent : '0') + ' kg';
         }
 
         function clearPraForm() {

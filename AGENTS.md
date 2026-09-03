@@ -10,7 +10,7 @@
 
 There is no build system, package manager, backend, or CI. Everything is plain HTML/CSS/JavaScript. The app is meant to run offline after the first load via a Service Worker.
 
-Current version: `1.1.17` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
+Current version: `1.1.18` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
 
 ## Repository layout
 
@@ -148,9 +148,10 @@ There is currently no Excel export for the PRA module. All three modules include
 
 Field crews enter 20–50 partial weights per group, so PRA has extra input ergonomics on top of the auto-adding rows above:
 
-- A **⌨ Teclado app** toggle in the "Datos del Ensayo" card header (`togglePraKeypadMode()`, `index.html`) switches partial-weight rows between the OS keyboard (`inputmode="decimal"`, default) and a fixed on-screen numeric keypad (`inputmode="none"`, `#praKeypad`) so the system keyboard never covers the row list on a phone. The preference persists in `localStorage['praKeypadMode']`.
-- Focusing a partial-weight input opens the keypad (`openPraKeypad`) when the mode is on; it shows the active group name, `row / total rows`, and the running total, with `↑`/`↓` to move between rows and digit/comma/backspace/clear keys. Keys use `pointerdown` + `preventDefault()` so tapping them never blurs the focused input. `Listo` closes the panel (`closePraKeypad`); navigating to another view also closes it.
-- `focusPraRow(input, delta)` is the shared row-navigation helper used by the keypad's `⏎`/`↑`/`↓`, by `Enter` on a physical keyboard, and by the keypad's `enter` key.
+- A **⌨ Teclado app** toggle in the "Datos del Ensayo" card header (`togglePraKeypadMode()`, `index.html`) switches partial-weight rows between the OS keyboard (`inputmode="decimal"`) and a fixed on-screen numeric keypad (`inputmode="none"`, `#praKeypad`) so the system keyboard never covers the row list on a phone. **The app keypad is the default** (`praKeypadMode = localStorage.getItem('praKeypadMode') !== '0'`); the preference persists in `localStorage['praKeypadMode']` once the user explicitly toggles it.
+- Focusing a partial-weight input opens the keypad (`openPraKeypad`) when the mode is on; it shows the active group name and `row / total rows` (no running total — that only lives in the group header, see below), with `↑`/`↓` to move between rows and digit/comma/backspace/clear/negative-sign keys. A `−` key (`praKeypadNegate`) prepends a minus sign to the active row's value so a partial weight can be entered as a correction/subtraction; it's a no-op if the value is already negative. Keys use `pointerdown` + `preventDefault()` so tapping them never blurs the focused input. `Listo` closes the panel (`closePraKeypad`, which also blurs the row); navigating to another view also closes it.
+- `focusPraRow(input, delta)` is the shared row-navigation helper used by the keypad's `⏎`/`↑`/`↓`, by `Enter` on a physical keyboard, and by the keypad's `enter` key. `removePraPartial()` re-focuses a live row (or closes the keypad) when the row deleted with `×` was the keypad's active row, so `praKeypadActiveInput` never points at a detached node — a stale reference there would silently break `↑`/`↓`/Enter navigation.
+- Because iOS Safari does not focus a plain `<button>` on tap, `initPraKeypad()` also closes the keypad on any `pointerdown` outside both the keypad panel and the `#praDataCard` card (capture-phase, in addition to the `focusin`-based close), so tapping "Guardar"/"Exportar PDF" while the keypad is open doesn't leave the panel stuck covering the screen.
 - Each `.pra-group-header` is `position: sticky; top: 0`, and each group shows a live weighing count (`N pesadas`) next to its total, so the running total stays visible while scrolling a long list. Partial rows are numbered with a CSS counter (no JS cost per row).
 - `updatePraPartials(type)` recalculates only the touched group (scoped to its container) instead of all five groups on every keystroke, since the keypad can fire many updates per second.
 
@@ -160,7 +161,7 @@ Field crews enter 20–50 partial weights per group, so PRA has extra input ergo
 - `praTests` — array of saved PRA tests.
 - `granTests` — array of saved granulometry tests.
 - `lang` — current UI language (`es` or `en`).
-- `praKeypadMode` — `'1'`/`'0'`, whether the PRA numeric keypad replaces the system keyboard.
+- `praKeypadMode` — `'1'`/`'0'`, whether the PRA numeric keypad replaces the system keyboard. Defaults to on (`'1'`-equivalent) when unset; only an explicit `'0'` turns it off.
 - `testsDateState` — JSON object of explicit open/closed overrides for the home screen's date groups (see below), keyed by `YYYY-MM-DD`.
 - Legacy key `presioData` is migrated automatically on first load and then removed.
 - Saving:
@@ -185,6 +186,11 @@ Field crews enter 20–50 partial weights per group, so PRA has extra input ergo
   - On 3G/2G or offline: cache first; falls back to a 503 response if missing.
 - When a new Service Worker is waiting and the connection is good, an update banner appears with **Update** / **Later** buttons. **Update** calls `skipWaiting()` and reloads the page.
 - The **Force update** button on the home screen calls `registration.update()` only on WiFi / 4G; otherwise it shows an error toast.
+
+## Mobile viewport quirks
+
+- The bottom `.status-bar` (save status / row count / version) and `.fab-container` (Inicio/Guardar/Idioma/Gráfica) are `position: fixed; bottom: 0`, which is relative to the layout viewport. Mobile browsers don't reliably resize that layout viewport when the on-screen keyboard opens (iOS Safari in particular), so these elements can float mid-screen or jump while the keyboard animates in/out.
+- `initViewportPin()` (`index.html`) works around this with the Visual Viewport API: on `visualViewport`'s `resize`/`scroll` events it computes the gap between `window.innerHeight` and the actually-visible area, and applies that as a `translateY` on both elements so they stay pinned to the true bottom of the screen. No-ops on browsers without `window.visualViewport`.
 
 ## Development conventions and code style
 
