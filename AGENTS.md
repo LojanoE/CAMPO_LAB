@@ -7,11 +7,11 @@
 1. **Presiómetro** — pressuremeter test data entry, correction calculations, creep values, P-V graph, and Excel export.
 2. **Densidad por Reemplazo con Agua (PRA)** — water-replacement density test with partial-weight inputs, an on-screen numeric keypad for fast field entry, volume/density/compaction results, and rock-mass correction.
 3. **Granulometría** — sieve analysis (particle size distribution) with retained/passing percentages and Excel export.
-4. **Balanza BLE (PRUEBA)** — experimental Web Bluetooth reader for the Jontex floor scale (BR2262e BLE-UART module). Shows live weight and captures it as a partial weight into any of the five PRA mass groups.
+4. **Balanza BLE (PRUEBA)** — experimental Web Bluetooth reader for the Jontex floor scale (BR2262e BLE-UART module). Shows live weight and captures it as a partial weight into any of the five PRA mass groups. Requires Chrome, Edge, Opera or Samsung Internet (Android/desktop) over HTTPS; **no App Store browser on iOS/iPadOS supports Web Bluetooth** — iPhone users must open the app inside the Bluefy browser. `detectBleSupport()` picks the right explanation per platform and `renderBalanzaHelp()` renders it in the connection card.
 
 There is no build system, package manager, backend, or CI. Everything is plain HTML/CSS/JavaScript. The app is meant to run offline after the first load via a Service Worker.
 
-Current version: `1.1.19` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
+Current version: `1.1.20` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
 
 ## Repository layout
 

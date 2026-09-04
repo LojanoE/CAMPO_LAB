@@ -869,6 +869,25 @@
         }
         .balanza-status.connected { background: rgba(45,106,79,0.12); color: var(--success); border-color: var(--success); }
         .balanza-status.disconnected { background: rgba(155,34,38,0.08); color: var(--danger); border-color: var(--danger); }
+        .balanza-help {
+            background: var(--paper); border: 1.5px solid var(--cement);
+            border-radius: var(--radius); padding: 12px;
+            font-size: 0.82rem; line-height: 1.5; color: var(--ink);
+            margin-bottom: 12px;
+        }
+        /* Same disabled treatment as .timer-controls .btn, so an unsupported
+           browser reads as unsupported instead of an unresponsive button. */
+        #balanzaBtnConnect:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        .balanza-help a {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-height: 44px; margin-top: 10px; padding: 0 14px;
+            border: 1.5px solid var(--water-dark); border-radius: var(--radius);
+            color: var(--water-dark); font-weight: 700; text-decoration: none;
+        }
         .balanza-weight {
             font-size: 3.2rem; font-weight: 800; text-align: center;
             font-variant-numeric: tabular-nums; color: var(--water-dark);
@@ -1424,6 +1443,7 @@
             <div class="card">
                 <div class="card-title">&#128279; <span data-key="balanzaConnTitle">Conexión Bluetooth</span></div>
                 <div id="balanzaStatus" class="balanza-status disconnected">&#128308; <span id="balanzaStatusText">Desconectado</span></div>
+                <div id="balanzaHelp" class="balanza-help" hidden></div>
                 <div class="btn-row">
                     <button class="btn btn-primary" id="balanzaBtnConnect" onclick="balanzaConnect()">&#128279; <span data-key="balanzaConnect">Escanear y Conectar</span></button>
                     <button class="btn btn-danger" id="balanzaBtnDisconnect" style="display:none" onclick="balanzaDisconnect()">&#10060; <span data-key="balanzaDisconnect">Desconectar</span></button>
@@ -1504,9 +1524,9 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const APP_VERSION = '1.1.19';
+        const APP_VERSION = '1.1.20';
 
-        const SW_VERSION = 'campolab-v1.1.19';
+        const SW_VERSION = 'campolab-v1.1.20';
         // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
         const WATER_DENSITY_TABLE = {};
         const waterDensityBase = {
@@ -1681,7 +1701,12 @@
                 balanzaDisconnect: "Desconectar",
                 balanzaConnected: "Conectado",
                 balanzaDisconnected: "Desconectado",
-                balanzaNoSupport: "Web Bluetooth no soportado. Usa Chrome/Edge en Android/Windows.",
+                balanzaNoSupportShort: "Bluetooth web no disponible",
+                balanzaHelpIos: "En iPhone y iPad ningún navegador de la App Store soporta Bluetooth web: Safari, Chrome, Edge y Firefox usan todos el motor de Apple, que no incluye esta función. Para leer la balanza, abrí CAMPO_LAB dentro del navegador Bluefy (gratis). El resto de la app funciona normal en Safari.",
+                balanzaHelpIosLink: "Ver Bluefy en la App Store",
+                balanzaHelpFirefox: "Firefox no soporta Bluetooth web en ninguna plataforma. Usá Chrome, Edge, Opera o Samsung Internet.",
+                balanzaHelpInsecure: "El Bluetooth web exige una conexión segura. Abrí la app por HTTPS (no como archivo local).",
+                balanzaHelpOther: "Este navegador no soporta Bluetooth web. Usá Chrome, Edge u Opera en Android, Windows, macOS o Linux.",
                 balanzaLiveWeight: "Peso en vivo",
                 balanzaTargetLabel: "Capturar en (grupo PRA)",
                 balanzaCapture: "Capturar peso",
@@ -1843,7 +1868,12 @@
                 balanzaDisconnect: "Disconnect",
                 balanzaConnected: "Connected",
                 balanzaDisconnected: "Disconnected",
-                balanzaNoSupport: "Web Bluetooth not supported. Use Chrome/Edge on Android/Windows.",
+                balanzaNoSupportShort: "Web Bluetooth unavailable",
+                balanzaHelpIos: "On iPhone and iPad no App Store browser supports Web Bluetooth: Safari, Chrome, Edge and Firefox all run on Apple's engine, which lacks this feature. To read the scale, open CAMPO_LAB inside the Bluefy browser (free). The rest of the app works normally in Safari.",
+                balanzaHelpIosLink: "Get Bluefy on the App Store",
+                balanzaHelpFirefox: "Firefox does not support Web Bluetooth on any platform. Use Chrome, Edge, Opera or Samsung Internet.",
+                balanzaHelpInsecure: "Web Bluetooth requires a secure connection. Open the app over HTTPS (not as a local file).",
+                balanzaHelpOther: "This browser does not support Web Bluetooth. Use Chrome, Edge or Opera on Android, Windows, macOS or Linux.",
                 balanzaLiveWeight: "Live weight",
                 balanzaTargetLabel: "Capture into (PRA group)",
                 balanzaCapture: "Capture weight",
@@ -2994,13 +3024,50 @@
         let blePacketCount = 0;
         let bleCaptureCount = 0;
 
+        // Web Bluetooth is missing for very different reasons per platform, and the
+        // advice that helps an Android user ("use Chrome") is actively wrong on iOS,
+        // where every App Store browser runs on Apple's engine.
+        function detectBleSupport() {
+            if (navigator.bluetooth) return 'ok';
+            if (!window.isSecureContext) return 'insecure';
+            const ua = navigator.userAgent;
+            // Modern iPads report themselves as MacIntel, hence the touch-point check.
+            if (/iP(hone|ad|od)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return 'ios';
+            if (/Firefox/.test(ua)) return 'firefox';
+            return 'other';
+        }
+
+        function renderBalanzaHelp() {
+            const box = document.getElementById('balanzaHelp');
+            if (!box) return;
+            const support = detectBleSupport();
+            if (support === 'ok') {
+                box.hidden = true;
+                box.textContent = '';
+                return;
+            }
+            const keys = { ios: 'balanzaHelpIos', firefox: 'balanzaHelpFirefox', insecure: 'balanzaHelpInsecure', other: 'balanzaHelpOther' };
+            box.textContent = T[lang][keys[support]];
+            if (support === 'ios') {
+                const link = document.createElement('a');
+                link.href = 'https://apps.apple.com/us/app/id1492822055';
+                link.target = '_blank';
+                link.rel = 'noopener';
+                link.textContent = T[lang].balanzaHelpIosLink;
+                box.appendChild(document.createElement('br'));
+                box.appendChild(link);
+            }
+            box.hidden = false;
+        }
+
         function initBalanza() {
             if (!navigator.bluetooth) {
                 const btn = document.getElementById('balanzaBtnConnect');
                 if (btn) btn.disabled = true;
-                balanzaSetStatus(false, T[lang].balanzaNoSupport);
-                balanzaLogMsg('ERROR: ' + T[lang].balanzaNoSupport);
+                balanzaSetStatus(false, T[lang].balanzaNoSupportShort);
+                balanzaLogMsg('ERROR: ' + T[lang].balanzaNoSupportShort);
             }
+            renderBalanzaHelp();
         }
 
         function balanzaLogMsg(msg) {
@@ -3030,7 +3097,8 @@
         }
 
         function updateBalanzaStatus() {
-            if (!navigator.bluetooth) { balanzaSetStatus(false, T[lang].balanzaNoSupport); return; }
+            renderBalanzaHelp();
+            if (!navigator.bluetooth) { balanzaSetStatus(false, T[lang].balanzaNoSupportShort); return; }
             balanzaSetStatus(!!(bleDevice && bleDevice.gatt && bleDevice.gatt.connected));
         }
 
