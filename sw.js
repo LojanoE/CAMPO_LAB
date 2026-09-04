@@ -1,4 +1,4 @@
-const CACHE_NAME = 'campolab-v1.1.18';
+const CACHE_NAME = 'campolab-v1.1.19';
 const ASSETS = [
   './',
   './index.html',

@@ -2,15 +2,16 @@
 
 ## Project overview
 
-`CAMPO_LAB` is a client-side, single-file mobile Progressive Web App (PWA) for geotechnical field work. It contains three independent calculation modules:
+`CAMPO_LAB` is a client-side, single-file mobile Progressive Web App (PWA) for geotechnical field work. It contains three calculation modules plus one experimental hardware-integration module:
 
 1. **Presiómetro** — pressuremeter test data entry, correction calculations, creep values, P-V graph, and Excel export.
 2. **Densidad por Reemplazo con Agua (PRA)** — water-replacement density test with partial-weight inputs, an on-screen numeric keypad for fast field entry, volume/density/compaction results, and rock-mass correction.
 3. **Granulometría** — sieve analysis (particle size distribution) with retained/passing percentages and Excel export.
+4. **Balanza BLE (PRUEBA)** — experimental Web Bluetooth reader for the Jontex floor scale (BR2262e BLE-UART module). Shows live weight and captures it as a partial weight into any of the five PRA mass groups.
 
 There is no build system, package manager, backend, or CI. Everything is plain HTML/CSS/JavaScript. The app is meant to run offline after the first load via a Service Worker.
 
-Current version: `1.1.18` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
+Current version: `1.1.19` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
 
 ## Repository layout
 
@@ -21,6 +22,7 @@ Current version: `1.1.18` (see `APP_VERSION` and `SW_VERSION` in `index.html`, a
 - `manifest.json` — PWA manifest (`standalone`, Spanish/English name, icons, theme colors).
 - `icon.svg`, `icon-192.png`, `icon-512.png` — PWA icons.
 - `PRA/13. Hoja auxiliar (PRA) V.0.xlsm` — Macro-enabled Excel workbook with the reference PRA calculation sheets.
+- `PRUEBA/` — Prototype folder for the BLE scale reader (`balanza_ble_app.html` standalone Web Bluetooth app + README with the BR2262e reverse-engineering notes). Kept as reference; the integrated module lives in `index.html`.
 - `.gitattributes` — `* text=auto` (LF normalization).
 - `LICENSE` — Apache License 2.0.
 
@@ -54,7 +56,9 @@ All application code lives inside `index.html` in one `<script>` block. The majo
    - Form I/O, row management, calculations, P-V chart, Excel export.
 6. **PRA module**
    - Dynamic partial-weight rows, density lookup, result calculation.
-7. **Saved-test list / language / graph / service-worker UI**
+7. **Balanza BLE module (PRUEBA)**
+   - Web Bluetooth connection to the scale, live weight display, capture into PRA partial groups, debug log.
+8. **Saved-test list / language / graph / service-worker UI**
    - `renderTestsList()`, `toggleLanguage()`, `drawChart()`, `registerSW()`, update banner handling.
 
 `sw.js` is independent of `index.html` and only caches GET requests for the listed assets.
@@ -154,6 +158,16 @@ Field crews enter 20–50 partial weights per group, so PRA has extra input ergo
 - Because iOS Safari does not focus a plain `<button>` on tap, `initPraKeypad()` also closes the keypad on any `pointerdown` outside both the keypad panel and the `#praDataCard` card (capture-phase, in addition to the `focusin`-based close), so tapping "Guardar"/"Exportar PDF" while the keypad is open doesn't leave the panel stuck covering the screen.
 - Each `.pra-group-header` is `position: sticky; top: 0`, and each group shows a live weighing count (`N pesadas`) next to its total, so the running total stays visible while scrolling a long list. Partial rows are numbered with a CSS counter (no JS cost per row).
 - `updatePraPartials(type)` recalculates only the touched group (scoped to its container) instead of all five groups on every keystroke, since the keypad can fire many updates per second.
+
+### Balanza BLE (PRUEBA)
+
+Experimental module (own home card and `balanzaView`) that reads the Jontex floor scale over Web Bluetooth and feeds the PRA module. Ported from the `PRUEBA/balanza_ble_app.html` prototype.
+
+- **Hardware:** the scale uses a Barrot **BR2262e** BLE-UART bridge — Service `0xFF00`, RX (Notify) `0xFF01`, TX (Write) `0xFF02`. Connect with `balanzaConnect()` (`navigator.bluetooth.requestDevice` filtered by name prefix `BR2262`); notifications on `0xFF01` feed `balanzaParseWeight()`.
+- **Parser:** provisional — extracts an ASCII number from each frame (`/([+-]?\s*\d+[.,]?\d*)/`). The exact frame format is not yet confirmed; the view includes a collapsible debug log (HEX + ASCII per packet) to support further reverse engineering. Adjust `balanzaParseWeight()` once the protocol is known.
+- **Capture:** the user picks a target PRA mass group (`#balanzaTarget`, the five `PRA_PARTIALS` keys) and presses **Capturar**; `balanzaCapture()` calls `addPraPartial(target, weight)` which writes into the PRA form in the DOM (visible or not), recalculates totals, and sets `changed = true`.
+- **Saving:** `saveCurrent()` routes to `savePra()` while `balanzaView` is active, so Guardar / `goHome()` / the 30 s autosave persist captured weights as a PRA test instead of silently discarding them.
+- **Browser support:** Web Bluetooth requires Chrome/Edge/Opera on Android/Windows/Mac over HTTPS or localhost. iOS Safari is unsupported — `initBalanza()` disables the connect button and shows `balanzaNoSupport` when `navigator.bluetooth` is missing (use the Bluefy browser on iOS). The BLE connection intentionally stays alive when navigating to other views; only **Desconectar** or a device-side drop ends it.
 
 ## Data persistence
 

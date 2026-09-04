@@ -861,6 +861,33 @@
         .print-signature-label { font-weight: 700; margin-bottom: 30px; }
         .print-signature-date { text-align: left; margin-top: 20px; }
 
+        /* Balanza BLE module (PRUEBA) */
+        .balanza-status {
+            text-align: center; padding: 10px; border-radius: var(--radius);
+            font-size: 0.9rem; font-weight: 700; margin-bottom: 12px;
+            border: 1.5px solid var(--cement);
+        }
+        .balanza-status.connected { background: rgba(45,106,79,0.12); color: var(--success); border-color: var(--success); }
+        .balanza-status.disconnected { background: rgba(155,34,38,0.08); color: var(--danger); border-color: var(--danger); }
+        .balanza-weight {
+            font-size: 3.2rem; font-weight: 800; text-align: center;
+            font-variant-numeric: tabular-nums; color: var(--water-dark);
+            font-family: 'JetBrains Mono', monospace; margin: 8px 0;
+        }
+        .balanza-unit { font-size: 1.2rem; color: var(--cement); }
+        .balanza-capture-info { text-align: center; font-size: 0.82rem; color: var(--cement); margin-top: 8px; font-weight: 600; }
+        .balanza-info-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px;
+            font-size: 0.78rem; color: var(--cement);
+        }
+        .balanza-info-grid span { color: var(--ink); font-weight: 600; font-family: 'JetBrains Mono', monospace; word-break: break-all; }
+        .balanza-log {
+            background: var(--ink); color: #cbd5e1; border-radius: var(--radius);
+            padding: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+            max-height: 180px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;
+            margin-top: 10px;
+        }
+
         /* Print */
         @media print {
             .fab-container, .status-bar, .update-banner, .test-actions, .no-print, .view:not(#printView).active { display: none !important; }
@@ -912,6 +939,11 @@
                     <div class="home-card-icon">&#9878;</div>
                     <div class="home-card-title" data-key="cardGran">Granulometría</div>
                     <div class="home-card-desc" data-key="cardGranDesc">Análisis por tamizado</div>
+                </div>
+                <div class="home-card" onclick="openBalanza()">
+                    <div class="home-card-icon">&#9878;&#65039;</div>
+                    <div class="home-card-title" data-key="cardBalanza">Balanza BLE</div>
+                    <div class="home-card-desc" data-key="cardBalanzaDesc">Captura de peso (PRUEBA)</div>
                 </div>
             </div>
 
@@ -1380,6 +1412,58 @@
             </div>
         </div>
         </div>
+
+        <!-- BALANZA BLE VIEW (PRUEBA) -->
+        <div id="balanzaView" class="view">
+            <div class="header header-nav">
+                <button class="back-btn" onclick="goHome()">&#8592; <span data-key="btnBack">Volver</span></button>
+                <h1 data-key="balanzaTitle">BALANZA BLE (PRUEBA)</h1>
+                <div style="width:60px"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">&#128279; <span data-key="balanzaConnTitle">Conexión Bluetooth</span></div>
+                <div id="balanzaStatus" class="balanza-status disconnected">&#128308; <span id="balanzaStatusText">Desconectado</span></div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" id="balanzaBtnConnect" onclick="balanzaConnect()">&#128279; <span data-key="balanzaConnect">Escanear y Conectar</span></button>
+                    <button class="btn btn-danger" id="balanzaBtnDisconnect" style="display:none" onclick="balanzaDisconnect()">&#10060; <span data-key="balanzaDisconnect">Desconectar</span></button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">&#9878;&#65039; <span data-key="balanzaLiveWeight">Peso en vivo</span></div>
+                <div class="balanza-weight"><span id="balanzaWeight">--</span><span class="balanza-unit"> kg</span></div>
+                <div class="form-group full" style="margin-top:10px">
+                    <label data-key="balanzaTargetLabel">Capturar en (grupo PRA)</label>
+                    <select id="balanzaTarget">
+                        <option value="waterInicial" data-key="praAguaInicialPartials">Agua Inicial (pesos parciales)</option>
+                        <option value="waterSobrante" data-key="praAguaSobrantePartials">Agua Sobrante (pesos parciales)</option>
+                        <option value="water" data-key="praAguaPartials">Agua Total (pesos parciales)</option>
+                        <option value="suelo" selected data-key="praSueloPartials">Suelo Húmedo (pesos parciales)</option>
+                        <option value="roca" data-key="praRocaPartials">Roca (pesos parciales)</option>
+                    </select>
+                </div>
+                <div class="btn-row" style="margin-top:10px">
+                    <button class="btn btn-accent" id="balanzaBtnCapture" onclick="balanzaCapture()">&#9878;&#65039; <span data-key="balanzaCapture">Capturar peso</span></button>
+                </div>
+                <div class="balanza-capture-info"><span data-key="balanzaCaptures">Capturas</span>: <span id="balanzaCaptureCount">0</span></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title" style="cursor:pointer" onclick="toggleBalanzaLog()">&#128220; <span data-key="balanzaLogTitle">Log de datos (debug)</span> <span id="balanzaLogChevron">&#9656;</span></div>
+                <div id="balanzaLogWrap" style="display:none">
+                    <div class="balanza-info-grid">
+                        <div>HEX: <span id="balanzaRawHex">-</span></div>
+                        <div>ASCII: <span id="balanzaRawAscii">-</span></div>
+                        <div><span data-key="balanzaPackets">Paquetes</span>: <span id="balanzaPacketCount">0</span></div>
+                    </div>
+                    <div id="balanzaLog" class="balanza-log"></div>
+                    <div class="btn-row" style="margin-top:8px">
+                        <button class="btn btn-outline btn-small" onclick="clearBalanzaLog()" data-key="balanzaLogClear">Limpiar log</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="printView" class="view">
@@ -1420,9 +1504,9 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const APP_VERSION = '1.1.18';
+        const APP_VERSION = '1.1.19';
 
-        const SW_VERSION = 'campolab-v1.1.18';
+        const SW_VERSION = 'campolab-v1.1.19';
         // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
         const WATER_DENSITY_TABLE = {};
         const waterDensityBase = {
@@ -1588,7 +1672,26 @@
                 printSignatureDate: "Fecha",
                 printSignatureSignature: "Firma",
                 signatureLabel: "Firma del operador",
-                signatureClear: "Borrar firma"
+                signatureClear: "Borrar firma",
+                cardBalanza: "Balanza BLE",
+                cardBalanzaDesc: "Captura de peso (PRUEBA)",
+                balanzaTitle: "BALANZA BLE (PRUEBA)",
+                balanzaConnTitle: "Conexión Bluetooth",
+                balanzaConnect: "Escanear y Conectar",
+                balanzaDisconnect: "Desconectar",
+                balanzaConnected: "Conectado",
+                balanzaDisconnected: "Desconectado",
+                balanzaNoSupport: "Web Bluetooth no soportado. Usa Chrome/Edge en Android/Windows.",
+                balanzaLiveWeight: "Peso en vivo",
+                balanzaTargetLabel: "Capturar en (grupo PRA)",
+                balanzaCapture: "Capturar peso",
+                balanzaCaptures: "Capturas",
+                balanzaNoWeight: "Sin lectura de peso — conecta la balanza",
+                balanzaCaptured: "Capturado {w} kg → {g}",
+                balanzaLogTitle: "Log de datos (debug)",
+                balanzaPackets: "Paquetes",
+                balanzaLogClear: "Limpiar log",
+                balanzaCancelled: "Selección cancelada"
             },
             en: {
                 pageTitle: "Campo Lab",
@@ -1731,7 +1834,26 @@
                 printSignatureDate: "Date",
                 printSignatureSignature: "Signature",
                 signatureLabel: "Operator signature",
-                signatureClear: "Clear signature"
+                signatureClear: "Clear signature",
+                cardBalanza: "BLE Scale",
+                cardBalanzaDesc: "Weight capture (TRIAL)",
+                balanzaTitle: "BLE SCALE (TRIAL)",
+                balanzaConnTitle: "Bluetooth Connection",
+                balanzaConnect: "Scan and Connect",
+                balanzaDisconnect: "Disconnect",
+                balanzaConnected: "Connected",
+                balanzaDisconnected: "Disconnected",
+                balanzaNoSupport: "Web Bluetooth not supported. Use Chrome/Edge on Android/Windows.",
+                balanzaLiveWeight: "Live weight",
+                balanzaTargetLabel: "Capture into (PRA group)",
+                balanzaCapture: "Capture weight",
+                balanzaCaptures: "Captures",
+                balanzaNoWeight: "No weight reading — connect the scale",
+                balanzaCaptured: "Captured {w} kg → {g}",
+                balanzaLogTitle: "Data log (debug)",
+                balanzaPackets: "Packets",
+                balanzaLogClear: "Clear log",
+                balanzaCancelled: "Selection cancelled"
             }
         };
 
@@ -1778,6 +1900,7 @@
             initSignaturePads();
             initPraKeypad();
             initViewportPin();
+            initBalanza();
             applyLang();
             showView('homeView');
             renderTestsList();
@@ -1832,6 +1955,11 @@
             changed = false;
             updateStatus();
             showView('praView');
+        }
+
+        function openBalanza() {
+            showView('balanzaView');
+            updateBalanzaStatus();
         }
 
         // ==================== STORAGE ====================
@@ -1891,6 +2019,10 @@
                 savePra();
             } else if (document.getElementById('granView').classList.contains('active')) {
                 saveGran();
+            } else if (document.getElementById('balanzaView').classList.contains('active')) {
+                // Balanza captures write into the PRA form, so saving from this view
+                // must persist the PRA test (otherwise goHome/autosave would discard them).
+                savePra();
             }
             changed = false;
             updateStatus();
@@ -2849,6 +2981,167 @@
             return { volTotal, volAnillo, volPozo, densidadHumeda, densidadSeca, compactacion };
         }
 
+        // ==================== BALANZA BLE (PRUEBA) ====================
+        // Lector BLE para la balanza Jontex con módulo BR2262e (puente BLE-UART).
+        // Portado del prototipo PRUEBA/balanza_ble_app.html. Captura el peso en vivo
+        // como pesada parcial de uno de los 5 grupos de masas del módulo PRA.
+        const BLE_UART_SERVICE = 0xFF00;
+        const BLE_UART_RX = 0xFF01; // Notify (datos de la balanza)
+
+        let bleDevice = null;
+        let bleRxChar = null;
+        let bleLastWeight = null;
+        let blePacketCount = 0;
+        let bleCaptureCount = 0;
+
+        function initBalanza() {
+            if (!navigator.bluetooth) {
+                const btn = document.getElementById('balanzaBtnConnect');
+                if (btn) btn.disabled = true;
+                balanzaSetStatus(false, T[lang].balanzaNoSupport);
+                balanzaLogMsg('ERROR: ' + T[lang].balanzaNoSupport);
+            }
+        }
+
+        function balanzaLogMsg(msg) {
+            const el = document.getElementById('balanzaLog');
+            if (!el) return;
+            const time = new Date().toLocaleTimeString('es-EC', { hour12: false });
+            el.textContent += `\n[${time}] ${msg}`;
+            // Keep the log bounded so long field sessions don't grow memory without limit.
+            const lines = el.textContent.split('\n');
+            if (lines.length > 200) el.textContent = lines.slice(-150).join('\n');
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function balanzaSetStatus(connected, customText) {
+            const el = document.getElementById('balanzaStatus');
+            const txt = document.getElementById('balanzaStatusText');
+            const btnConn = document.getElementById('balanzaBtnConnect');
+            const btnDisc = document.getElementById('balanzaBtnDisconnect');
+            if (el) el.className = 'balanza-status ' + (connected ? 'connected' : 'disconnected');
+            if (txt) {
+                const label = customText || (connected ? T[lang].balanzaConnected : T[lang].balanzaDisconnected);
+                txt.textContent = label;
+                if (el) el.firstChild.textContent = connected ? '\u{1F7E2} ' : '\u{1F534} ';
+            }
+            if (btnConn) btnConn.style.display = connected ? 'none' : '';
+            if (btnDisc) btnDisc.style.display = connected ? '' : 'none';
+        }
+
+        function updateBalanzaStatus() {
+            if (!navigator.bluetooth) { balanzaSetStatus(false, T[lang].balanzaNoSupport); return; }
+            balanzaSetStatus(!!(bleDevice && bleDevice.gatt && bleDevice.gatt.connected));
+        }
+
+        async function balanzaConnect() {
+            if (!navigator.bluetooth) return;
+            try {
+                balanzaLogMsg('Solicitando dispositivo BLE...');
+                bleDevice = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { namePrefix: 'BR2262' },
+                        { services: [BLE_UART_SERVICE] }
+                    ],
+                    optionalServices: [BLE_UART_SERVICE]
+                });
+                balanzaLogMsg('Dispositivo: ' + (bleDevice.name || '(sin nombre)'));
+                bleDevice.addEventListener('gattserverdisconnected', balanzaOnDisconnected);
+
+                const server = await bleDevice.gatt.connect();
+                balanzaLogMsg('GATT conectado.');
+                const service = await server.getPrimaryService(BLE_UART_SERVICE);
+                bleRxChar = await service.getCharacteristic(BLE_UART_RX);
+                await bleRxChar.startNotifications();
+                bleRxChar.addEventListener('characteristicvaluechanged', balanzaHandleNotification);
+                balanzaLogMsg('Notificaciones activas. Esperando datos...');
+                balanzaSetStatus(true);
+            } catch (err) {
+                balanzaLogMsg('Error: ' + err.message);
+                if (err.name === 'NotFoundError') showToast(T[lang].balanzaCancelled, 'info');
+                else showToast(err.message, 'error');
+                balanzaSetStatus(false);
+            }
+        }
+
+        async function balanzaDisconnect() {
+            if (bleDevice && bleDevice.gatt.connected) {
+                try { await bleDevice.gatt.disconnect(); } catch (e) {}
+            }
+            balanzaOnDisconnected();
+        }
+
+        function balanzaOnDisconnected() {
+            balanzaLogMsg('Desconectado.');
+            bleDevice = null;
+            bleRxChar = null;
+            bleLastWeight = null;
+            balanzaSetStatus(false);
+        }
+
+        function balanzaHandleNotification(event) {
+            const data = new Uint8Array(event.target.value.buffer);
+            blePacketCount++;
+            const countEl = document.getElementById('balanzaPacketCount');
+            if (countEl) countEl.textContent = blePacketCount;
+            balanzaParseWeight(data);
+        }
+
+        function balanzaParseWeight(data) {
+            // Estrategia provisional (igual que el prototipo): número en ASCII dentro de la trama.
+            // El log HEX/ASCII queda visible para ajustar el parser cuando se confirme el protocolo.
+            const hex = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' ');
+            const ascii = new TextDecoder('ascii').decode(data).replace(/\x00/g, '·');
+            const hexEl = document.getElementById('balanzaRawHex');
+            const asciiEl = document.getElementById('balanzaRawAscii');
+            if (hexEl) hexEl.textContent = hex;
+            if (asciiEl) asciiEl.textContent = ascii;
+            balanzaLogMsg(`#${blePacketCount} (${data.length}B) HEX: ${hex} | ASCII: "${ascii}"`);
+
+            const match = ascii.match(/([+-]?\s*\d+[.,]?\d*)/);
+            if (match) {
+                const val = parseFloat(match[1].replace(',', '.').replace(/\s/g, ''));
+                if (isFinite(val)) {
+                    bleLastWeight = val;
+                    const wEl = document.getElementById('balanzaWeight');
+                    if (wEl) wEl.textContent = val.toFixed(2);
+                }
+            }
+        }
+
+        function balanzaCapture() {
+            if (bleLastWeight === null || !isFinite(bleLastWeight)) {
+                showToast(T[lang].balanzaNoWeight, 'error');
+                return;
+            }
+            const target = document.getElementById('balanzaTarget').value;
+            if (!PRA_PARTIALS[target]) return;
+            // Escribe directo en el formulario PRA (vive en el DOM aunque praView no esté visible);
+            // addPraPartial ya actualiza totales y recalcula resultados.
+            addPraPartial(target, bleLastWeight.toFixed(2));
+            bleCaptureCount++;
+            const cEl = document.getElementById('balanzaCaptureCount');
+            if (cEl) cEl.textContent = bleCaptureCount;
+            markChanged();
+            const groupLabel = T[lang][PRA_PARTIALS[target].labelKey] || target;
+            showToast(T[lang].balanzaCaptured.replace('{w}', bleLastWeight.toFixed(2)).replace('{g}', groupLabel), 'success');
+            balanzaLogMsg(`>>> Capturado ${bleLastWeight.toFixed(2)} kg -> ${target}`);
+        }
+
+        function toggleBalanzaLog() {
+            const wrap = document.getElementById('balanzaLogWrap');
+            const chevron = document.getElementById('balanzaLogChevron');
+            if (!wrap) return;
+            const open = wrap.style.display === 'none';
+            wrap.style.display = open ? '' : 'none';
+            if (chevron) chevron.innerHTML = open ? '&#9662;' : '&#9656;';
+        }
+
+        function clearBalanzaLog() {
+            const el = document.getElementById('balanzaLog');
+            if (el) el.textContent = '';
+        }
+
         // ==================== GRANULOMETRÍA ====================
         const GRAN_SIEVES = [
             { apertura: 304.8, tamiz: '12 in' },
@@ -3441,6 +3734,7 @@
             updateStatus();
             updateTimerLabels();
             renderTestsList();
+            updateBalanzaStatus();
             if (document.getElementById('granView').classList.contains('active')) drawGranChart();
         }
 
