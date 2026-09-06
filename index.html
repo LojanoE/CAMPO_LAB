@@ -380,6 +380,7 @@
             color: var(--cement);
         }
         .partial-row.active-row input { border-color: var(--water); background: #eaf3f7; }
+        tr.active-row input { border-color: var(--water); background: #eaf3f7; }
         .remove-btn {
             background: var(--danger); color: var(--chalk); border: 2px solid var(--ink);
             width: 48px; height: 48px; border-radius: var(--radius);
@@ -1026,11 +1027,11 @@
                     </div>
                     <div class="form-group">
                         <label data-key="elevationDiff">Diff. Altura (m)</label>
-                        <input type="text" inputmode="decimal" id="elevationDiff" placeholder="Ej: 12.15">
+                        <input type="text" inputmode="decimal" data-keypad id="elevationDiff" placeholder="Ej: 12.15">
                     </div>
                     <div class="form-group">
                         <label data-key="waterLevel">Nivel Freático (m)</label>
-                        <input type="text" inputmode="decimal" id="waterLevel" placeholder="Ej: 8.50">
+                        <input type="text" inputmode="decimal" data-keypad id="waterLevel" placeholder="Ej: 8.50">
                     </div>
                     <div class="form-group full">
                         <label data-key="stratumDesc">Descripción del Estrato</label>
@@ -1044,25 +1045,27 @@
                 <div class="constants-row">
                     <div class="form-group">
                         <label>&eta; (calibración)</label>
-                        <input type="text" inputmode="decimal" id="eta" placeholder="Factor">
+                        <input type="text" inputmode="decimal" data-keypad id="eta" placeholder="Factor">
                     </div>
                     <div class="form-group">
                         <label>A (cm²)</label>
-                        <input type="text" inputmode="decimal" id="areaA" placeholder="Área">
+                        <input type="text" inputmode="decimal" data-keypad id="areaA" placeholder="Área">
                     </div>
                     <div class="form-group">
                         <label>Vc (cm³)</label>
-                        <input type="text" inputmode="decimal" id="volVc" placeholder="Volumen">
+                        <input type="text" inputmode="decimal" data-keypad id="volVc" placeholder="Volumen">
                     </div>
                     <div class="form-group">
                         <label>Pw (Bar)</label>
-                        <input type="text" inputmode="decimal" id="pw" placeholder="Presión H.">
+                        <input type="text" inputmode="decimal" data-keypad id="pw" placeholder="Presión H.">
                     </div>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-title">&#128200; <span data-key="dataTable">Lecturas de Campo</span></div>
+            <div class="card" id="presioDataCard">
+                <div class="card-title">&#128200; <span data-key="dataTable">Lecturas de Campo</span>
+                    <button type="button" class="pra-keypad-toggle" onclick="togglePraKeypadMode()">&#9000; <span data-key="praKeypadToggleLabel">Teclado app</span></button>
+                </div>
                 <div class="quick-actions" id="quickActions">
                     <button class="quick-btn" onclick="setPressure(0)">0</button>
                     <button class="quick-btn" onclick="setPressure(0.5)">0.5</button>
@@ -1155,7 +1158,7 @@
                     </div>
                     <div class="form-group">
                         <label data-key="praTemp">Temperatura Agua (°C)</label>
-                        <input type="text" inputmode="decimal" id="praTemp" onchange="calcPra()">
+                        <input type="text" inputmode="decimal" data-keypad id="praTemp" onchange="calcPra()">
                     </div>
                     <div class="form-group">
                         <label data-key="praMetodo">Método (A o B)</label>
@@ -1167,15 +1170,15 @@
                     </div>
                     <div class="form-group">
                         <label data-key="praDiametro">Diámetro Anillo (m)</label>
-                        <input type="text" inputmode="decimal" id="praDiametro" placeholder="1">
+                        <input type="text" inputmode="decimal" data-keypad id="praDiametro" placeholder="1">
                     </div>
                     <div class="form-group">
                         <label data-key="praTamanio">Tamaño Máximo (GTM)</label>
-                        <input type="text" inputmode="numeric" id="praTamanio" placeholder="5">
+                        <input type="text" inputmode="numeric" data-keypad id="praTamanio" placeholder="5">
                     </div>
                     <div class="form-group">
                         <label data-key="praProfundidad">Profundidad Pozo (m)</label>
-                        <input type="text" inputmode="decimal" id="praProfundidad" placeholder="0.62">
+                        <input type="text" inputmode="decimal" data-keypad id="praProfundidad" placeholder="0.62">
                     </div>
                     <div class="form-group">
                         <label data-key="praDate">Fecha</label>
@@ -1197,11 +1200,11 @@
                     </div>
                     <div class="form-group">
                         <label data-key="praDensidadSecaMax">Densidad Seca Máxima (g/cm³)</label>
-                        <input type="text" inputmode="decimal" id="praDensidadSecaMax" placeholder="2.134">
+                        <input type="text" inputmode="decimal" data-keypad id="praDensidadSecaMax" placeholder="2.134">
                     </div>
                     <div class="form-group">
                         <label data-key="praDensidadRoca">Densidad Roca (kg/m³)</label>
-                        <input type="text" inputmode="decimal" id="praDensidadRoca" value="2800">
+                        <input type="text" inputmode="decimal" data-keypad id="praDensidadRoca" value="2800">
                     </div>
                 </div>
             </div>
@@ -1270,35 +1273,8 @@
                     </div>
                     <div class="form-group full">
                         <label data-key="praHumedad">Humedad (%)</label>
-                        <input type="text" inputmode="decimal" id="praHumedad" onchange="calcPra()">
+                        <input type="text" inputmode="decimal" data-keypad id="praHumedad" onchange="calcPra()">
                     </div>
-                </div>
-            </div>
-
-            <div id="praKeypad" class="keypad" hidden>
-                <div class="keypad-bar">
-                    <span class="keypad-group" id="praKeypadGroup">-</span>
-                    <span class="keypad-row" id="praKeypadRow">-</span>
-                    <button type="button" class="keypad-nav" onclick="focusPraRow(praKeypadActiveInput, -1)">&#8593;</button>
-                    <button type="button" class="keypad-nav" onclick="focusPraRow(praKeypadActiveInput, 1)">&#8595;</button>
-                    <button type="button" class="keypad-done" onclick="closePraKeypad()" data-key="praKeypadDone">Listo</button>
-                </div>
-                <div class="keypad-grid">
-                    <button type="button" class="keypad-key" data-key-digit="7">7</button>
-                    <button type="button" class="keypad-key" data-key-digit="8">8</button>
-                    <button type="button" class="keypad-key" data-key-digit="9">9</button>
-                    <button type="button" class="keypad-key keypad-key-del" data-key-action="back">&#9003;</button>
-                    <button type="button" class="keypad-key" data-key-digit="4">4</button>
-                    <button type="button" class="keypad-key" data-key-digit="5">5</button>
-                    <button type="button" class="keypad-key" data-key-digit="6">6</button>
-                    <button type="button" class="keypad-key keypad-key-enter" data-key-action="enter" style="grid-row: span 2">&#9166;</button>
-                    <button type="button" class="keypad-key" data-key-digit="1">1</button>
-                    <button type="button" class="keypad-key" data-key-digit="2">2</button>
-                    <button type="button" class="keypad-key" data-key-digit="3">3</button>
-                    <button type="button" class="keypad-key" data-key-digit=",">,</button>
-                    <button type="button" class="keypad-key" data-key-digit="0">0</button>
-                    <button type="button" class="keypad-key keypad-key-clear" data-key-action="clear">C</button>
-                    <button type="button" class="keypad-key keypad-key-neg" data-key-action="negate">&minus;</button>
                 </div>
             </div>
 
@@ -1331,6 +1307,7 @@
                     </div>
                 </div>
                 <div class="btn-row" style="margin-top:16px">
+                    <button class="btn btn-accent" onclick="exportPraExcelCurrent()">&#128229; <span data-key="btnExportExcel">Excel</span></button>
                     <button class="btn btn-primary" onclick="printFieldSheet()">&#128196; <span data-key="btnExportPdf">PDF</span></button>
                 </div>
             </div>
@@ -1376,7 +1353,7 @@
                     </div>
                     <div class="form-group">
                         <label data-key="granPesoTotalMuestra">Peso Total de la Muestra (g)</label>
-                        <input type="text" inputmode="decimal" id="granPesoTotal" placeholder="Ej: 5000" oninput="calcGran()">
+                        <input type="text" inputmode="decimal" data-keypad id="granPesoTotal" placeholder="Ej: 5000" oninput="calcGran()">
                     </div>
                     <div class="form-group">
                         <label data-key="granMallaSeparacion">Malla de Separación</label>
@@ -1385,8 +1362,10 @@
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-title">&#9878; <span data-key="granData">Datos de Tamizado</span></div>
+            <div class="card" id="granDataCard">
+                <div class="card-title">&#9878; <span data-key="granData">Datos de Tamizado</span>
+                    <button type="button" class="pra-keypad-toggle" onclick="togglePraKeypadMode()">&#9000; <span data-key="praKeypadToggleLabel">Teclado app</span></button>
+                </div>
                 <div class="table-scroll">
                     <table class="field-table">
                         <thead>
@@ -1486,6 +1465,33 @@
         </div>
     </div>
 
+    <div id="praKeypad" class="keypad" hidden>
+        <div class="keypad-bar">
+            <span class="keypad-group" id="praKeypadGroup">-</span>
+            <span class="keypad-row" id="praKeypadRow">-</span>
+            <button type="button" class="keypad-nav" onclick="focusPraRow(praKeypadActiveInput, -1)">&#8593;</button>
+            <button type="button" class="keypad-nav" onclick="focusPraRow(praKeypadActiveInput, 1)">&#8595;</button>
+            <button type="button" class="keypad-done" onclick="closePraKeypad()" data-key="praKeypadDone">Listo</button>
+        </div>
+        <div class="keypad-grid">
+            <button type="button" class="keypad-key" data-key-digit="7">7</button>
+            <button type="button" class="keypad-key" data-key-digit="8">8</button>
+            <button type="button" class="keypad-key" data-key-digit="9">9</button>
+            <button type="button" class="keypad-key keypad-key-del" data-key-action="back">&#9003;</button>
+            <button type="button" class="keypad-key" data-key-digit="4">4</button>
+            <button type="button" class="keypad-key" data-key-digit="5">5</button>
+            <button type="button" class="keypad-key" data-key-digit="6">6</button>
+            <button type="button" class="keypad-key keypad-key-enter" data-key-action="enter" style="grid-row: span 2">&#9166;</button>
+            <button type="button" class="keypad-key" data-key-digit="1">1</button>
+            <button type="button" class="keypad-key" data-key-digit="2">2</button>
+            <button type="button" class="keypad-key" data-key-digit="3">3</button>
+            <button type="button" class="keypad-key" data-key-digit=",">,</button>
+            <button type="button" class="keypad-key" data-key-digit="0">0</button>
+            <button type="button" class="keypad-key keypad-key-clear" data-key-action="clear">C</button>
+            <button type="button" class="keypad-key keypad-key-neg" data-key-action="negate">&minus;</button>
+        </div>
+    </div>
+
     <div id="printView" class="view">
         <div class="header header-nav no-print">
             <button class="back-btn" onclick="closePrintView()">&#8592; Cerrar</button>
@@ -1524,9 +1530,9 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const APP_VERSION = '1.1.20';
+        const APP_VERSION = '1.1.22';
 
-        const SW_VERSION = 'campolab-v1.1.20';
+        const SW_VERSION = 'campolab-v1.1.22';
         // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
         const WATER_DENSITY_TABLE = {};
         const waterDensityBase = {
@@ -1952,7 +1958,7 @@
         }
 
         function showView(id) {
-            if (id !== 'praView') closePraKeypad();
+            closePraKeypad();
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             document.getElementById('fabGraph').style.display = (id === 'presioView') ? 'flex' : 'none';
@@ -2257,7 +2263,7 @@
             clearSignature('presioSignature');
         }
 
-        function loadPresioTest(id) {
+        function loadPresioTest(id, opts = {}) {
             const test = presioTests.find(t => t.id === id);
             if (!test) return;
             currentPresioId = id;
@@ -2296,7 +2302,7 @@
             setSignature('presioSignature', d.signature || '');
             changed = false;
             updateStatus();
-            showView('presioView');
+            if (!opts.noNav) showView('presioView');
         }
 
         function savePresio() {
@@ -2357,12 +2363,12 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="row-num">${n}</td>
-                <td class="col-pm"><input type="text" inputmode="decimal" class="inp-pm" value="${pmVal}" onchange="calcRow(this)"></td>
-                <td><input type="text" inputmode="decimal" class="inp-p1" onchange="calcRow(this)"></td>
-                <td class="col-vol col-15"><input type="text" inputmode="decimal" class="inp-15" onchange="calcRow(this)"></td>
-                <td class="col-vol col-30"><input type="text" inputmode="decimal" class="inp-30" onchange="calcRow(this)"></td>
-                <td class="col-vol col-60"><input type="text" inputmode="decimal" class="inp-60" onchange="calcRow(this)"></td>
-                <td class="col-vol"><input type="text" inputmode="decimal" class="inp-180" onchange="calcRow(this)"></td>
+                <td class="col-pm"><input type="text" inputmode="${praKeypadMode ? 'none' : 'decimal'}" data-keypad class="inp-pm" value="${pmVal}" onchange="calcRow(this)"></td>
+                <td><input type="text" inputmode="${praKeypadMode ? 'none' : 'decimal'}" data-keypad class="inp-p1" onchange="calcRow(this)"></td>
+                <td class="col-vol col-15"><input type="text" inputmode="${praKeypadMode ? 'none' : 'decimal'}" data-keypad class="inp-15" onchange="calcRow(this)"></td>
+                <td class="col-vol col-30"><input type="text" inputmode="${praKeypadMode ? 'none' : 'decimal'}" data-keypad class="inp-30" onchange="calcRow(this)"></td>
+                <td class="col-vol col-60"><input type="text" inputmode="${praKeypadMode ? 'none' : 'decimal'}" data-keypad class="inp-60" onchange="calcRow(this)"></td>
+                <td class="col-vol"><input type="text" inputmode="${praKeypadMode ? 'none' : 'decimal'}" data-keypad class="inp-180" onchange="calcRow(this)"></td>
             `;
             tbody.appendChild(tr);
             const ctr = document.createElement('tr');
@@ -2634,12 +2640,27 @@
         function focusPraRow(input, delta) {
             if (!input || !input.dataset) return;
             const type = input.dataset.type;
-            if (!PRA_PARTIALS[type]) return;
-            if (delta > 0) ensureEmptyPraRow(type);
-            const inputs = praGroupInputs(type);
-            const idx = inputs.indexOf(input);
+            if (type && PRA_PARTIALS[type]) {
+                if (delta > 0) ensureEmptyPraRow(type);
+                const inputs = praGroupInputs(type);
+                const idx = inputs.indexOf(input);
+                if (idx === -1) return;
+                const next = inputs[idx + delta];
+                if (next) {
+                    next.focus();
+                    next.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+            // Generic keypad input (presiómetro / granulometría / campos fijos PRA):
+            // move through the eligible inputs of the current view in DOM order.
+            const view = input.closest('.view');
+            if (!view) return;
+            const eligible = Array.from(view.querySelectorAll('.praPartial, [data-keypad]'))
+                .filter(el => !el.disabled && el.offsetParent !== null);
+            const idx = eligible.indexOf(input);
             if (idx === -1) return;
-            const next = inputs[idx + delta];
+            const next = eligible[idx + delta];
             if (next) {
                 next.focus();
                 next.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2715,9 +2736,10 @@
         }
 
         function applyPraKeypadMode() {
-            const btn = document.getElementById('praKeypadToggle');
-            if (btn) btn.classList.toggle('on', praKeypadMode);
-            document.querySelectorAll('.praPartial').forEach(input => {
+            document.querySelectorAll('.pra-keypad-toggle').forEach(btn => {
+                btn.classList.toggle('on', praKeypadMode);
+            });
+            document.querySelectorAll('.praPartial, [data-keypad]').forEach(input => {
                 input.setAttribute('inputmode', praKeypadMode ? 'none' : 'decimal');
             });
         }
@@ -2746,26 +2768,29 @@
         function initPraKeypad() {
             applyPraKeypadMode();
             const panel = document.getElementById('praKeypad');
-            const view = document.getElementById('praView');
-            if (!panel || !view) return;
-            view.addEventListener('focusin', (e) => {
-                if (e.target.classList && e.target.classList.contains('praPartial')) {
-                    if (praKeypadMode) openPraKeypad(e.target);
-                } else if (!panel.contains(e.target)) {
+            if (!panel) return;
+            document.addEventListener('focusin', (e) => {
+                const t = e.target;
+                const eligible = t.classList && (t.classList.contains('praPartial') || t.hasAttribute('data-keypad'));
+                if (eligible) {
+                    if (praKeypadMode) openPraKeypad(t);
+                } else if (!panel.contains(t)) {
                     closePraKeypad();
                 }
             });
             // Safari on iOS does not move focus to a plain <button> on tap, so tapping
             // "Guardar", "Exportar PDF", etc. while the keypad is open never fires the
             // focusin handler above and the keypad panel is left covering the screen.
-            // Close it on any tap outside both the keypad panel and the "Datos del
-            // Ensayo" card (which owns the partial-weight rows and their × remove
-            // buttons), regardless of whether that tap actually changes focus.
-            const dataCard = document.getElementById('praDataCard');
+            // Close it on any tap outside both the keypad panel and the data cards
+            // (which own the editable rows and their × remove buttons), regardless of
+            // whether that tap actually changes focus.
             document.addEventListener('pointerdown', (e) => {
                 if (panel.hidden) return;
                 if (panel.contains(e.target)) return;
-                if (dataCard && dataCard.contains(e.target)) return;
+                // Tapping another keypad-eligible input moves focus there (the
+                // focusin handler re-opens the keypad on it) — don't close first.
+                if (e.target.closest && e.target.closest('.praPartial, [data-keypad]')) return;
+                if (e.target.closest && e.target.closest('#praDataCard, #presioDataCard, #granDataCard')) return;
                 closePraKeypad();
             }, true);
             panel.addEventListener('pointerdown', (e) => {
@@ -2779,10 +2804,10 @@
                     praKeypadInsert(input, keyBtn.dataset.keyDigit);
                 } else if (keyBtn.dataset.keyAction === 'back') {
                     input.value = input.value.slice(0, -1);
-                    handlePraRowInput(input);
+                    keypadCommit(input);
                 } else if (keyBtn.dataset.keyAction === 'clear') {
                     input.value = '';
-                    handlePraRowInput(input);
+                    keypadCommit(input);
                 } else if (keyBtn.dataset.keyAction === 'enter') {
                     focusPraRow(input, 1);
                 } else if (keyBtn.dataset.keyAction === 'negate') {
@@ -2791,10 +2816,24 @@
             });
         }
 
+        // Push the current value of a keypad-edited input through the same handlers
+        // it would use with a hardware keyboard: PRA partials keep their row logic;
+        // everything else gets synthetic input+change events (calcRow, calcGran,
+        // calcPra, markChanged, etc. hang off those).
+        function keypadCommit(input) {
+            if (input.classList.contains('praPartial')) {
+                handlePraRowInput(input);
+                return;
+            }
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            updatePraKeypadBar(input);
+        }
+
         function praKeypadNegate(input) {
             if (!input.value.startsWith('-')) {
                 input.value = '-' + input.value;
-                handlePraRowInput(input);
+                keypadCommit(input);
             }
         }
 
@@ -2805,46 +2844,76 @@
             } else {
                 input.value += ch;
             }
-            handlePraRowInput(input);
+            keypadCommit(input);
         }
 
         function openPraKeypad(input) {
             if (!praKeypadMode) return;
             const panel = document.getElementById('praKeypad');
             if (!panel) return;
-            document.querySelectorAll('.partial-row.active-row').forEach(r => r.classList.remove('active-row'));
+            document.querySelectorAll('.active-row').forEach(r => r.classList.remove('active-row'));
             praKeypadActiveInput = input;
             panel.hidden = false;
-            const view = document.getElementById('praView');
+            const view = input.closest('.view');
             if (view) view.style.paddingBottom = (panel.offsetHeight + 16) + 'px';
-            const row = input.closest('.partial-row');
+            const row = input.closest('.partial-row') || input.closest('tr');
             if (row) row.classList.add('active-row');
             updatePraKeypadBar(input);
+            // The fixed panel covers the lower part of the screen; if the focused
+            // input ended up underneath it, scroll it just above the keypad.
+            const r = input.getBoundingClientRect();
+            const limit = window.innerHeight - panel.offsetHeight - 8;
+            if (r.bottom > limit) {
+                window.scrollBy({ top: r.bottom - limit, behavior: 'smooth' });
+            }
         }
 
         function closePraKeypad() {
             const panel = document.getElementById('praKeypad');
             if (!panel || panel.hidden) return;
             panel.hidden = true;
-            const view = document.getElementById('praView');
-            if (view) view.style.paddingBottom = '';
-            document.querySelectorAll('.partial-row.active-row').forEach(r => r.classList.remove('active-row'));
+            document.querySelectorAll('.view').forEach(v => { v.style.paddingBottom = ''; });
+            document.querySelectorAll('.active-row').forEach(r => r.classList.remove('active-row'));
             if (praKeypadActiveInput) praKeypadActiveInput.blur();
             praKeypadActiveInput = null;
         }
 
         function updatePraKeypadBar(input) {
             const panel = document.getElementById('praKeypad');
-            if (!panel || panel.hidden || !input || !input.dataset) return;
-            const type = input.dataset.type;
-            const info = PRA_PARTIALS[type];
-            if (!info) return;
+            if (!panel || panel.hidden || !input) return;
             const groupEl = document.getElementById('praKeypadGroup');
-            if (groupEl) groupEl.textContent = T[lang][info.labelKey] || '';
-            const inputs = praGroupInputs(type);
-            const idx = inputs.indexOf(input);
             const rowEl = document.getElementById('praKeypadRow');
-            if (rowEl) rowEl.textContent = (idx + 1) + ' / ' + inputs.length;
+            const type = input.dataset ? input.dataset.type : null;
+            const info = type ? PRA_PARTIALS[type] : null;
+            if (info) {
+                if (groupEl) groupEl.textContent = T[lang][info.labelKey] || '';
+                const inputs = praGroupInputs(type);
+                const idx = inputs.indexOf(input);
+                if (rowEl) rowEl.textContent = (idx + 1) + ' / ' + inputs.length;
+                return;
+            }
+            // Table cell (presiómetro / granulometría): column header + row number.
+            const td = input.closest('td');
+            if (td) {
+                const table = input.closest('table');
+                const th = table ? table.querySelectorAll('thead th')[td.cellIndex] : null;
+                let label = '';
+                if (th) {
+                    const firstNode = Array.from(th.childNodes).find(n => n.textContent.trim() !== '');
+                    label = firstNode ? firstNode.textContent.trim() : '';
+                }
+                if (groupEl) groupEl.textContent = label;
+                const tr = input.closest('tr');
+                const rows = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
+                const n = rows.indexOf(tr) + 1;
+                if (rowEl) rowEl.textContent = (lang === 'es' ? 'Fila ' : 'Row ') + n;
+                return;
+            }
+            // Standalone field: its form-group label.
+            const fg = input.closest('.form-group');
+            const labelEl = fg ? fg.querySelector('label') : null;
+            if (groupEl) groupEl.textContent = labelEl ? labelEl.textContent.trim() : '';
+            if (rowEl) rowEl.textContent = '';
         }
 
         function clearPraForm() {
@@ -2877,7 +2946,7 @@
             closePraKeypad();
         }
 
-        function loadPraTest(id) {
+        function loadPraTest(id, opts = {}) {
             const test = praTests.find(t => t.id === id);
             if (!test) return;
             currentPraId = id;
@@ -2927,7 +2996,7 @@
             setSignature('praSignature', d.signature || '');
             changed = false;
             updateStatus();
-            showView('praView');
+            if (!opts.noNav) showView('praView');
         }
 
         function savePra() {
@@ -3280,9 +3349,9 @@
                 tr.innerHTML = `
                     <td class="row-num">${i + 1}</td>
                     <td>${s.apertura === 0 ? escapeHtml(T[lang].granBandeja) : escapeHtml(s.tamiz)}</td>
-                    <td class="col-vol"><input class="gran-abertura" type="text" inputmode="decimal" value="${d.abertura != null && d.abertura !== '' ? d.abertura : (s.apertura || '')}" ${s.apertura === 0 ? 'disabled' : ''} oninput="calcGran()"></td>
-                    <td><input class="gran-parcial" type="text" inputmode="decimal" value="${d.parcial != null ? d.parcial : ''}" oninput="calcGran()" placeholder="0"></td>
-                    <td><input class="gran-acumulado" type="text" inputmode="decimal" value="${d.acumulado != null ? d.acumulado : ''}" oninput="calcGran()" placeholder="0"></td>
+                    <td class="col-vol"><input class="gran-abertura" type="text" inputmode="${praKeypadMode ? 'none' : 'decimal'}" data-keypad value="${d.abertura != null && d.abertura !== '' ? d.abertura : (s.apertura || '')}" ${s.apertura === 0 ? 'disabled' : ''} oninput="calcGran()"></td>
+                    <td><input class="gran-parcial" type="text" inputmode="${praKeypadMode ? 'none' : 'decimal'}" data-keypad value="${d.parcial != null ? d.parcial : ''}" oninput="calcGran()" placeholder="0"></td>
+                    <td><input class="gran-acumulado" type="text" inputmode="${praKeypadMode ? 'none' : 'decimal'}" data-keypad value="${d.acumulado != null ? d.acumulado : ''}" oninput="calcGran()" placeholder="0"></td>
                     <td class="gran-ret">-</td>
                     <td class="gran-pas">-</td>
                 `;
@@ -3626,7 +3695,7 @@
             saveStorage();
         }
 
-        function loadGranTest(id) {
+        function loadGranTest(id, opts = {}) {
             const test = granTests.find(t => t.id === id);
             if (!test) return;
             currentGranId = id;
@@ -3640,7 +3709,7 @@
             renderGranRows(Array.isArray(d.filas) ? d.filas : []);
             calcGran();
             setSignature('granSignature', d.signature || '');
-            showView('granView');
+            if (!opts.noNav) showView('granView');
         }
 
         function parseNum(str) {
@@ -3741,6 +3810,8 @@
                     <div class="test-meta">${meta}</div>
                 </div>
                 <div class="test-actions">
+                    <button class="btn btn-outline btn-small" onclick="exportTestFromHome('${t.type}','${t.id}','excel')">&#128229; ${T[lang].btnExportExcel}</button>
+                    <button class="btn btn-outline btn-small" onclick="exportTestFromHome('${t.type}','${t.id}','pdf')">&#128196; ${T[lang].btnExportPdf}</button>
                     <button class="btn btn-primary btn-small" onclick="editTest('${t.type}','${t.id}')">${T[lang].btnEdit}</button>
                     <button class="btn btn-danger btn-small" onclick="deleteTest('${t.type}','${t.id}')">${T[lang].btnDelete}</button>
                 </div>
@@ -3777,6 +3848,125 @@
             }
             saveStorage();
             renderTestsList();
+        }
+
+        // Export a saved test directly from the home list, without opening its module.
+        function exportTestFromHome(type, id, format) {
+            if (format === 'pdf') {
+                if (type === 'presio') loadPresioTest(id);
+                else if (type === 'pra') loadPraTest(id);
+                else loadGranTest(id);
+                printFieldSheet('homeView');
+                return;
+            }
+            if (type === 'pra') {
+                const t = praTests.find(x => x.id === id);
+                if (t) exportPraExcel(t);
+                return;
+            }
+            const prevId = type === 'presio' ? currentPresioId : currentGranId;
+            if (type === 'presio') loadPresioTest(id, { noNav: true });
+            else loadGranTest(id, { noNav: true });
+            if (type === 'presio') exportPresioExcel(); else exportGranExcel();
+            // Restore whatever was in the module form before the export.
+            if (prevId && prevId !== id) {
+                if (type === 'presio') loadPresioTest(prevId, { noNav: true });
+                else loadGranTest(prevId, { noNav: true });
+            } else if (!prevId) {
+                if (type === 'presio') {
+                    currentPresioId = null;
+                    clearPresioForm();
+                    createDefaultRows();
+                } else {
+                    currentGranId = null;
+                    clearGranForm();
+                }
+                changed = false;
+                updateStatus();
+            }
+        }
+
+        // Data-driven Excel export for PRA (works from a saved test object; no DOM reads).
+        function exportPraExcel(test) {
+            if (typeof XLSX === 'undefined') {
+                showToast(lang === 'es' ? 'Librería Excel no cargada' : 'Excel library not loaded', 'error');
+                return;
+            }
+            if (!test) return;
+            const d = test.data || {};
+            const res = test.results || {};
+            const L = lang === 'es' ? {
+                pozo: 'Pozo N°', fecha: 'Fecha', metodo: 'Método', equipo: 'Equipo',
+                diametro: 'Diámetro', tamanio: 'Tamaño', profundidad: 'Profundidad (m)',
+                temp: 'Temperatura Agua (°C)', densAgua: 'Densidad Agua (g/cm³)',
+                densSecaMax: 'Densidad Seca Máxima (g/cm³)', densRoca: 'Densidad Roca (kg/m³)',
+                humedad: 'Humedad (%)', descripcion: 'Descripción', total: 'Total (kg)'
+            } : {
+                pozo: 'Pit No.', fecha: 'Date', metodo: 'Method', equipo: 'Equipment',
+                diametro: 'Diameter', tamanio: 'Size', profundidad: 'Depth (m)',
+                temp: 'Water Temperature (°C)', densAgua: 'Water Density (g/cm³)',
+                densSecaMax: 'Maximum Dry Density (g/cm³)', densRoca: 'Rock Density (kg/m³)',
+                humedad: 'Moisture (%)', descripcion: 'Description', total: 'Total (kg)'
+            };
+            const densAgua = getWaterDensity(d.temp);
+            const generalData = [
+                [L.pozo, d.pozoNum || ''],
+                [L.fecha, d.date || ''],
+                [L.metodo, d.metodo || ''],
+                [L.equipo, d.equipo || ''],
+                [L.diametro, d.diametro || ''],
+                [L.tamanio, d.tamanio || ''],
+                [L.profundidad, d.profundidad || ''],
+                [L.temp, d.temp || ''],
+                [L.densAgua, densAgua !== 1 ? parseFloat(densAgua.toFixed(5)) : ''],
+                [L.densSecaMax, d.densidadSecaMax || ''],
+                [L.densRoca, d.densidadRoca || ''],
+                [L.humedad, d.humedad || ''],
+                [L.descripcion, d.descripcion || '']
+            ];
+            const partialsData = [];
+            [
+                ['waterInicial', d.masaAguaInicialPartials, d.masaAguaInicial],
+                ['waterSobrante', d.masaAguaSobrantePartials, d.masaAguaSobrante],
+                ['water', d.masaAguaPartials, d.masaAguaTotal],
+                ['suelo', d.masaSueloPartials, d.masaSueloHumedo],
+                ['roca', d.masaRocaPartials, d.masaRoca]
+            ].forEach(([type, arr, legacy]) => {
+                const vals = Array.isArray(arr)
+                    ? arr.filter(v => String(v).trim() !== '')
+                    : (legacy ? [legacy] : []);
+                partialsData.push([T[lang][PRA_PARTIALS[type].labelKey]]);
+                let total = 0;
+                vals.forEach(v => {
+                    const n = parseNum(v);
+                    total += n;
+                    partialsData.push(['', n]);
+                });
+                partialsData.push([L.total, parseFloat(total.toFixed(3))]);
+                partialsData.push([]);
+            });
+            const resNum = (v, dec) => (v === null || v === undefined || v === 0 || Number.isNaN(v)) ? '' : parseFloat(v.toFixed(dec));
+            const resData = [
+                [T[lang].praVolTotal, resNum(res.volTotal, 2)],
+                [T[lang].praVolAnillo, resNum(res.volAnillo, 2)],
+                [T[lang].praVolPozo, resNum(res.volPozo, 2)],
+                [T[lang].praDensidadHumeda, resNum(res.densidadHumeda, 3)],
+                [T[lang].praDensidadSeca, resNum(res.densidadSeca, 3)],
+                [T[lang].praCompactacion, resNum(res.compactacion, 2)]
+            ];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(generalData), 'General');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(partialsData), 'PesosParciales');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resData), 'Resultados');
+            const fileName = 'PRA_' + (d.pozoNum || 'test') + '_' + (d.date || new Date().toISOString().split('T')[0]) + '.xlsx';
+            XLSX.writeFile(wb, fileName);
+            showToast(lang === 'es' ? 'Excel exportado' : 'Excel exported', 'success');
+        }
+
+        function exportPraExcelCurrent() {
+            savePra();
+            const t = praTests.find(x => x.id === currentPraId);
+            if (t) exportPraExcel(t);
         }
 
         // ==================== LANGUAGE ====================
@@ -3855,11 +4045,12 @@
         // ==================== PRINT / PDF FIELD SHEET ====================
         let printPrevViewId = 'homeView';
 
-        function printFieldSheet() {
+        function printFieldSheet(returnTo) {
             const active = document.querySelector('.view.active');
-            printPrevViewId = active ? active.id : 'homeView';
-            if (printPrevViewId === 'printView') printPrevViewId = 'homeView';
-            document.getElementById('printContent').innerHTML = buildPrintContent(printPrevViewId);
+            let sourceViewId = active ? active.id : 'homeView';
+            if (sourceViewId === 'printView') sourceViewId = 'homeView';
+            printPrevViewId = returnTo || sourceViewId;
+            document.getElementById('printContent').innerHTML = buildPrintContent(sourceViewId);
             document.body.classList.add('printing');
             showView('printView');
             window.onafterprint = () => {
