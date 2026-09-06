@@ -11,7 +11,7 @@
 
 There is no build system, package manager, backend, or CI. Everything is plain HTML/CSS/JavaScript. The app is meant to run offline after the first load via a Service Worker.
 
-Current version: `1.1.23` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
+Current version: `1.1.24` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
 
 ## Repository layout
 
@@ -90,16 +90,15 @@ Do not change app content without bumping `CACHE_NAME`; otherwise returning user
 
 ### Presiómetro
 
-Inputs per row: `Pm`, `P1`, volume readings at `15 s`, `30 s`, `60 s`, `180 s`.
+Inputs per row: `Pm`, `P1`, volume readings at `15 s`, `30 s`, `60 s`. (The `180 s` reading and its `ΔV180-30` creep column were removed in v1.1.24; the `v180` field of tests saved before that is simply ignored on load.)
 Constants: `η` (eta), `A` (area), `Vc`, `Pw`.
 
 Calculations (per row, in `calcRow`):
 
 - `P_corregido = Pm - P1 + Pw`
 - `δv = η * (Pm + Pw)`
-- `V_corregido = V60 - δv` if `V60` exists, otherwise `V180 - δv`
+- `V_corregido = V60 - δv` when `V60` exists
 - `ΔV60-30 = A * (V60 - V30)` when all values are present
-- `ΔV180-30 = A * (V180 - V30)` when all values are present
 
 The default pressure table has 22 fixed steps:
 `[0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.3, 2.7, 3.0, 3.3, 3.75, 4.0, 4.5, 5.1, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0]`.
@@ -156,7 +155,7 @@ Field crews enter 20–50 partial weights per group, so PRA has extra input ergo
 
 - A **⌨ Teclado app** toggle in the data-card header of each module ("Datos del Ensayo" in PRA, "Lecturas de Campo" in Presiómetro, "Datos de Tamizado" in Granulometría; `togglePraKeypadMode()`, `index.html`) switches keypad-eligible inputs between the OS keyboard (`inputmode="decimal"`) and a fixed on-screen numeric keypad (`inputmode="none"`, `#praKeypad`) so the system keyboard never covers the input list on a phone. **The app keypad is the default** (`praKeypadMode = localStorage.getItem('praKeypadMode') !== '0'`); the preference persists in `localStorage['praKeypadMode']` and is shared by the three modules — all toggle buttons reflect the same state.
 - Eligible inputs are PRA `.praPartial` rows plus any numeric input marked with the `data-keypad` attribute (Presiómetro table cells and equipment constants, Granulometría sieve rows and `#granPesoTotal`, and the fixed PRA numeric fields). Dynamic row templates set `inputmode` from the current mode at creation time, and `applyPraKeypadMode()` re-applies it to all `.praPartial, [data-keypad]` inputs when the mode changes.
-- Each key press is committed via `keypadCommit(input)`: PRA partials go through `handlePraRowInput` (auto-add row, group totals, keypad bar); all other eligible inputs receive synthetic bubbling `input` + `change` events so their existing handlers (`calcRow`, `calcGran`, `calcPra`, `markChanged`, …) fire unchanged. The keypad panel lives at top level in the DOM (outside any `.view`) and pads whichever view contains the active input.
+- Each key press is committed via `keypadCommit(input)`: PRA partials go through `handlePraRowInput` (auto-add row, group totals, keypad bar); all other eligible inputs receive synthetic bubbling `input` + `change` events so their existing handlers (`calcRow`, `calcGran`, `calcPra`, `markChanged`, …) fire unchanged. The keypad panel lives at top level in the DOM (outside the scroll container) and reserves its clearance through `--keypad-pad` on `.app-scroll` (see *App shell*).
 - Focusing an eligible input opens the keypad (`openPraKeypad`) when the mode is on; for PRA partials it shows the active group name and `row / total rows` (no running total — that only lives in the group header, see below), for table cells the column header + row number, and for standalone fields their label; with `↑`/`↓` to move between inputs and digit/comma/backspace/clear/negative-sign keys. A `−` key (`praKeypadNegate`) prepends a minus sign to the active input's value so an entry can be entered as a correction/subtraction; it's a no-op if the value is already negative. Keys use `pointerdown` + `preventDefault()` so tapping them never blurs the focused input. `Listo` closes the panel (`closePraKeypad`, which also blurs the input); navigating to another view also closes it.
 - `focusPraRow(input, delta)` is the shared navigation helper used by the keypad's `⏎`/`↑`/`↓`, by `Enter` on a physical keyboard, and by the keypad's `enter` key. For PRA partials it stays inside the group (auto-adding a row when moving down past the end); for other eligible inputs it moves through the visible `.praPartial, [data-keypad]` inputs of the current view in DOM order. `removePraPartial()` re-focuses a live row (or closes the keypad) when the row deleted with `×` was the keypad's active row, so `praKeypadActiveInput` never points at a detached node — a stale reference there would silently break `↑`/`↓`/Enter navigation.
 - Because iOS Safari does not focus a plain `<button>` on tap, `initPraKeypad()` also closes the keypad on any `pointerdown` outside both the keypad panel and the data cards (`#praDataCard`, `#presioDataCard`, `#granDataCard`) — capture-phase, in addition to the `focusin`-based close — so tapping "Guardar"/"Exportar PDF" while the keypad is open doesn't leave the panel stuck covering the screen.
@@ -205,10 +204,17 @@ Experimental module (own home card and `balanzaView`) that reads the Jontex floo
 - When a new Service Worker is waiting and the connection is good, an update banner appears with **Update** / **Later** buttons. **Update** calls `skipWaiting()` and reloads the page.
 - The **Force update** button on the home screen calls `registration.update()` only on WiFi / 4G; otherwise it shows an error toast.
 
-## Mobile viewport quirks
+## App shell and mobile viewport quirks
 
-- The bottom `.status-bar` (save status / row count / version) and `.fab-container` (Inicio/Guardar/Idioma/Gráfica) are `position: fixed; bottom: 0`, which is relative to the layout viewport. Mobile browsers don't reliably resize that layout viewport when the on-screen keyboard opens (iOS Safari in particular), so these elements can float mid-screen or jump while the keyboard animates in/out.
-- `initViewportPin()` (`index.html`) works around this with the Visual Viewport API: on `visualViewport`'s `resize`/`scroll` events it computes the gap between `window.innerHeight` and the actually-visible area, and applies that as a `translateY` on both elements so they stay pinned to the true bottom of the screen. No-ops on browsers without `window.visualViewport`.
+Since v1.1.24 the page is laid out as an app shell instead of a normal scrolling document:
+
+- `html`/`body` are fixed and `overflow: hidden`; the only scrolling element is `#appScroll` (`.app-scroll`), which wraps `.container` and `#printView` and ends just above the status bar (`bottom: calc(var(--footer-h) + env(safe-area-inset-bottom))`). The document itself never scrolls, so there is no rubber-band overscroll exposing the page background and the fixed chrome cannot drift.
+- The body height is bound to the **visual** viewport (`--app-height`, set by `initAppShell()`), not the layout viewport. When the OS keyboard opens the shell shrinks and the status bar / FABs stay on screen. This replaces the old `initViewportPin()`, which shifted those elements with a `translateY` and left them floating mid-screen whenever the compensating event never arrived (returning from a print, download or share dialog).
+- `syncAppChrome()` measures the real status-bar height into `--footer-h` and the app keypad's clearance into `--keypad-pad`, so `.app-scroll`, the FAB stack and the keypad always agree on where the bottom of the screen is. `body.keypad-open` swaps the FAB clearance for the keypad clearance and hides the FAB stack.
+- `revealInput(input)` scrolls `#appScroll` by the minimum amount needed to lift the focused input just above the keypad. It replaced `scrollIntoView({ block: 'center' })`, which animated across half the screen on every cell change and briefly exposed the area below the content.
+- `initAppShell()` recalibrates on `visualViewport` resize/scroll, window resize/orientation/focus/pageshow and on `visibilitychange`, so returning from any system dialog restores the layout even without a resize event.
+- Printing has to undo the shell: `@media print` resets `html`, `body` and `.app-scroll` to static/visible so the field sheet paginates normally instead of being clipped to one screen.
+- `armPrintRestore()` leaves print mode on whichever signal arrives first — `afterprint`, the `print` media query turning off, or the tab becoming visible again — because Chrome on Android, WebViews and the system "Save as PDF" dialog don't reliably fire `afterprint`. `exitPrintMode()` then clears `--app-height`, re-syncs the chrome and returns to the previous view.
 
 ## Development conventions and code style
 

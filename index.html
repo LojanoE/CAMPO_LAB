@@ -29,6 +29,11 @@
             --danger: #9b2226;
             --info: var(--water);
 
+            /* Alto real de la barra inferior y hueco que deja el teclado
+               de la app; los mide syncAppChrome() en cada cambio de layout. */
+            --footer-h: 38px;
+            --keypad-pad: 0px;
+
             --radius: 10px;
             --radius-lg: 14px;
             --shadow-hard: 3px 3px 0 var(--shadow);
@@ -38,8 +43,17 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        html { scroll-behavior: smooth; }
+        html {
+            scroll-behavior: smooth;
+            height: 100%;
+            overflow: hidden;
+            overscroll-behavior: none;
+        }
 
+        /* Shell de aplicacion: el documento no scrollea nunca. El unico
+           elemento con scroll es .app-scroll, asi que la barra inferior, los
+           FAB y el teclado quedan siempre clavados al borde de la pantalla y
+           no aparece el rebote del navegador dejando ver el fondo. */
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--paper);
@@ -50,9 +64,29 @@
             color: var(--ink);
             font-size: 15px;
             line-height: 1.45;
-            padding-bottom: 110px;
             -webkit-tap-highlight-color: transparent;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 100vh;
+            height: var(--app-height, 100vh);
+            overflow: hidden;
+            overscroll-behavior: none;
         }
+
+        .app-scroll {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            bottom: calc(var(--footer-h) + env(safe-area-inset-bottom, 0px));
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            scroll-behavior: auto;
+            /* Hueco para que la pila de FAB no tape el final del contenido. */
+            padding-bottom: 96px;
+        }
+        body.keypad-open .app-scroll { padding-bottom: var(--keypad-pad, 0px); }
+        body.keypad-open .fab-container { display: none; }
 
         .view { display: none; }
         .view.active { display: block; animation: fadeIn 0.25s ease; }
@@ -523,7 +557,7 @@
         /* FAB */
         .fab-container {
             position: fixed;
-            bottom: 72px;
+            bottom: calc(var(--footer-h) + env(safe-area-inset-bottom, 0px) + 14px);
             right: 14px;
             display: flex;
             flex-direction: column;
@@ -624,7 +658,7 @@
         .status-bar {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: var(--ink); border-top: 3px solid var(--orange);
-            padding: 8px 16px;
+            padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
             display: flex; justify-content: space-between; align-items: center;
             font-size: 0.78rem; color: var(--cement);
             z-index: 500;
@@ -818,9 +852,11 @@
         }
 
         /* Print preview and print layout */
-        #printView { background: #fff; color: #000; min-height: 100vh; }
+        #printView { background: #fff; color: #000; min-height: 100%; }
         #printView .container { max-width: 900px; }
-        body.printing .fab-container, body.printing .status-bar, body.printing .update-banner { display: none !important; }
+        body.printing .fab-container, body.printing .status-bar, body.printing .update-banner,
+        body.printing .keypad { display: none !important; }
+        body.printing .app-scroll { bottom: 0; padding-bottom: 24px; }
 
         /* Signature pad */
         .signature-wrap {
@@ -914,8 +950,16 @@
 
         /* Print */
         @media print {
-            .fab-container, .status-bar, .update-banner, .test-actions, .no-print, .view:not(#printView).active { display: none !important; }
-            body { background: white; padding-bottom: 0; background-image: none; }
+            .fab-container, .status-bar, .update-banner, .test-actions, .no-print, .keypad, .view:not(#printView).active { display: none !important; }
+            html { position: static; height: auto; overflow: visible; }
+            body {
+                background: white; background-image: none;
+                position: static; height: auto; overflow: visible; padding-bottom: 0;
+            }
+            .app-scroll {
+                position: static; height: auto; overflow: visible;
+                bottom: auto; padding-bottom: 0;
+            }
             .view { display: none !important; }
             #printView.view.active { display: block !important; }
             .card { box-shadow: none; border: 1px solid #ccc; }
@@ -939,6 +983,7 @@
         </div>
     </div>
 
+    <div id="appScroll" class="app-scroll">
     <div class="container">
         <!-- HOME VIEW -->
         <div id="homeView" class="view active">
@@ -1095,7 +1140,6 @@
                                 <th id="th-15">15s</th>
                                 <th id="th-30">30s</th>
                                 <th id="th-60">60s</th>
-                                <th>180s</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody"></tbody>
@@ -1124,7 +1168,6 @@
                                     <th data-key="colDeltaV">&delta;v<br>cm³</th>
                                     <th data-key="colVcorr">V Corregido<br>cm³</th>
                                     <th data-key="colCreep60">&Delta;V60-30</th>
-                                    <th data-key="colCreep180">&Delta;V180-30</th>
                                 </tr>
                             </thead>
                             <tbody id="calcBody"></tbody>
@@ -1469,6 +1512,17 @@
         </div>
     </div>
 
+    <div id="printView" class="view">
+        <div class="header header-nav no-print">
+            <button class="back-btn" onclick="closePrintView()">&#8592; Cerrar</button>
+            <h1 data-key="printFieldSheet">HOJA DE CAMPO</h1>
+            <div style="width:60px"></div>
+        </div>
+        <div id="printContent"></div>
+    </div>
+
+    </div>
+
     <div id="praKeypad" class="keypad" hidden>
         <div class="keypad-bar">
             <span class="keypad-group" id="praKeypadGroup">-</span>
@@ -1494,15 +1548,6 @@
             <button type="button" class="keypad-key keypad-key-clear" data-key-action="clear">C</button>
             <button type="button" class="keypad-key keypad-key-neg" data-key-action="negate">&minus;</button>
         </div>
-    </div>
-
-    <div id="printView" class="view">
-        <div class="header header-nav no-print">
-            <button class="back-btn" onclick="closePrintView()">&#8592; Cerrar</button>
-            <h1 data-key="printFieldSheet">HOJA DE CAMPO</h1>
-            <div style="width:60px"></div>
-        </div>
-        <div id="printContent"></div>
     </div>
 
     <div class="fab-container">
@@ -1534,9 +1579,9 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const APP_VERSION = '1.1.23';
+        const APP_VERSION = '1.1.24';
 
-        const SW_VERSION = 'campolab-v1.1.23';
+        const SW_VERSION = 'campolab-v1.1.24';
         // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
         const WATER_DENSITY_TABLE = {};
         const waterDensityBase = {
@@ -1603,7 +1648,6 @@
                 colDeltaV: "\u03b4v\ncm\u00b3",
                 colVcorr: "V Corregido\ncm\u00b3",
                 colCreep60: "\u0394V60-30",
-                colCreep180: "\u0394V180-30",
                 btnAddRow: "Fila",
                 btnCalculate: "Calcular",
                 btnEdit: "Editar",
@@ -1770,7 +1814,6 @@
                 colDeltaV: "\u03b4v\ncm\u00b3",
                 colVcorr: "Corr. V\ncm\u00b3",
                 colCreep60: "\u0394V60-30",
-                colCreep180: "\u0394V180-30",
                 btnAddRow: "Row",
                 btnCalculate: "Calculate",
                 btnEdit: "Edit",
@@ -1939,7 +1982,7 @@
             setupInputs();
             initSignaturePads();
             initPraKeypad();
-            initViewportPin();
+            initAppShell();
             initBalanza();
             applyLang();
             showView('homeView');
@@ -1966,7 +2009,12 @@
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             document.getElementById('fabGraph').style.display = (id === 'presioView') ? 'flex' : 'none';
-            window.scrollTo(0,0);
+            const scroller = document.getElementById('appScroll');
+            if (scroller) scroller.scrollTop = 0;
+            syncAppChrome();
+            // El contador del pie se calcula segun la vista activa, asi que hay
+            // que refrescarlo despues de cambiarla (antes se quedaba en 0).
+            updateCounts();
         }
 
         function goHome() {
@@ -2296,7 +2344,6 @@
                     tr.querySelector('.inp-15').value = r.v15 || '';
                     tr.querySelector('.inp-30').value = r.v30 || '';
                     tr.querySelector('.inp-60').value = r.v60 || '';
-                    tr.querySelector('.inp-180').value = r.v180 || '';
                 });
             } else {
                 createDefaultRows();
@@ -2317,8 +2364,7 @@
                     p1: tr.querySelector('.inp-p1').value,
                     v15: tr.querySelector('.inp-15').value,
                     v30: tr.querySelector('.inp-30').value,
-                    v60: tr.querySelector('.inp-60').value,
-                    v180: tr.querySelector('.inp-180').value
+                    v60: tr.querySelector('.inp-60').value
                 });
             });
             const data = {
@@ -2372,7 +2418,6 @@
                 <td class="col-vol col-15"><input type="text" inputmode="${praKeypadMode ? 'none' : 'decimal'}" data-keypad class="inp-15" onchange="calcRow(this)"></td>
                 <td class="col-vol col-30"><input type="text" inputmode="${praKeypadMode ? 'none' : 'decimal'}" data-keypad class="inp-30" onchange="calcRow(this)"></td>
                 <td class="col-vol col-60"><input type="text" inputmode="${praKeypadMode ? 'none' : 'decimal'}" data-keypad class="inp-60" onchange="calcRow(this)"></td>
-                <td class="col-vol"><input type="text" inputmode="${praKeypadMode ? 'none' : 'decimal'}" data-keypad class="inp-180" onchange="calcRow(this)"></td>
             `;
             tbody.appendChild(tr);
             const ctr = document.createElement('tr');
@@ -2382,7 +2427,6 @@
                 <td id="dv-${n}">-</td>
                 <td class="calc-value" id="cv-${n}">-</td>
                 <td class="calc-creep" id="c60-${n}">-</td>
-                <td class="calc-creep" id="c180-${n}">-</td>
             `;
             calctbody.appendChild(ctr);
             updateCounts();
@@ -2418,7 +2462,6 @@
                 tr.querySelectorAll('td')[2].id = `cv-${n}`;
                 tr.querySelectorAll('td')[1].id = `dv-${n}`;
                 tr.querySelectorAll('td')[3].id = `c60-${n}`;
-                tr.querySelectorAll('td')[4].id = `c180-${n}`;
             });
         }
 
@@ -2440,7 +2483,6 @@
             const p1 = parseNum(tr.querySelector('.inp-p1').value) || 0;
             const v30 = parseNum(tr.querySelector('.inp-30').value) || 0;
             const v60 = parseNum(tr.querySelector('.inp-60').value) || 0;
-            const v180 = parseNum(tr.querySelector('.inp-180').value) || 0;
             const pw = parseNum(document.getElementById('pw').value) || 0;
             const eta = parseNum(document.getElementById('eta').value) || 0;
             const areaA = parseNum(document.getElementById('areaA').value) || 0;
@@ -2450,12 +2492,9 @@
             setCalc(`dv-${rowNum}`, deltaV, 3);
             let vCorr = null;
             if (v60 && deltaV) vCorr = v60 - deltaV;
-            else if (v180 && deltaV) vCorr = v180 - deltaV;
             setCalc(`cv-${rowNum}`, vCorr, 2);
             const c60 = (areaA && v60 && v30) ? areaA * (v60 - v30) : null;
             setCalc(`c60-${rowNum}`, c60, 2);
-            const c180 = (areaA && v180 && v30) ? areaA * (v180 - v30) : null;
-            setCalc(`c180-${rowNum}`, c180, 2);
             markChanged();
         }
 
@@ -2519,10 +2558,10 @@
                 [generalLabels.pw, constants.pw]
             ];
             const fieldData = [
-                ['#', 'Pm (Bar)', 'P1 (Calib)', '15s', '30s', '60s', '180s']
+                ['#', 'Pm (Bar)', 'P1 (Calib)', '15s', '30s', '60s']
             ];
             const calcData = [
-                ['#', 'P Corregido (Bar)', '\u03b4v (cm³)', 'V Corregido (cm³)', '\u0394V60-30', '\u0394V180-30']
+                ['#', 'P Corregido (Bar)', '\u03b4v (cm³)', 'V Corregido (cm³)', '\u0394V60-30']
             ];
             const pw = parseNum(constants.pw) || 0;
             const eta = parseNum(constants.eta) || 0;
@@ -2534,22 +2573,18 @@
                 const v15 = parseNum(tr.querySelector('.inp-15').value) || 0;
                 const v30 = parseNum(tr.querySelector('.inp-30').value) || 0;
                 const v60 = parseNum(tr.querySelector('.inp-60').value) || 0;
-                const v180 = parseNum(tr.querySelector('.inp-180').value) || 0;
-                fieldData.push([rowNum, pm, p1, v15, v30, v60, v180]);
+                fieldData.push([rowNum, pm, p1, v15, v30, v60]);
                 const pCorr = pm - p1 + pw;
                 const deltaV = eta * (pm + pw);
                 let vCorr = null;
                 if (v60 && deltaV) vCorr = v60 - deltaV;
-                else if (v180 && deltaV) vCorr = v180 - deltaV;
                 const c60 = (areaA && v60 && v30) ? areaA * (v60 - v30) : null;
-                const c180 = (areaA && v180 && v30) ? areaA * (v180 - v30) : null;
                 calcData.push([
                     rowNum,
                     pCorr,
                     deltaV,
                     vCorr !== null ? vCorr : '',
-                    c60 !== null ? c60 : '',
-                    c180 !== null ? c180 : ''
+                    c60 !== null ? c60 : ''
                 ]);
             });
             const wb = XLSX.utils.book_new();
@@ -2652,7 +2687,7 @@
                 const next = inputs[idx + delta];
                 if (next) {
                     next.focus();
-                    next.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    revealInput(next);
                 }
                 return;
             }
@@ -2667,7 +2702,7 @@
             const next = eligible[idx + delta];
             if (next) {
                 next.focus();
-                next.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                revealInput(next);
             }
         }
 
@@ -2748,25 +2783,68 @@
             });
         }
 
-        // ---- Keep the bottom status bar and FAB stack pinned to the visible screen ----
-        // `position: fixed; bottom: 0` is relative to the layout viewport, but when the
-        // on-screen keyboard opens, mobile browsers (iOS Safari especially, some Android
-        // WebViews too) don't reliably resize the layout viewport to match — the fixed
-        // footer/FABs end up floating mid-screen or jumping as the keyboard animates in
-        // and out. The Visual Viewport API reports the actually-visible area, so we use
-        // it to shift these elements up by exactly the keyboard's height.
-        function initViewportPin() {
-            const vv = window.visualViewport;
-            if (!vv) return;
-            const pinned = [document.querySelector('.status-bar'), document.querySelector('.fab-container')].filter(Boolean);
-            if (!pinned.length) return;
-            function reposition() {
-                const offset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
-                pinned.forEach(el => { el.style.transform = offset ? `translateY(-${offset}px)` : ''; });
+        // ---- App shell ----
+        // El documento esta fijo y sin scroll: el alto del body se ata al viewport
+        // *visual* (no al de layout) y todo el desplazamiento ocurre dentro de
+        // #appScroll. Asi la barra inferior y los FAB no se despegan del borde
+        // cuando se abre el teclado del sistema ni cuando el navegador muestra un
+        // dialogo (imprimir, descargar, compartir) y devuelve el foco despues.
+        // La version anterior movia esos elementos con translateY y, si el evento
+        // de vuelta no llegaba, el pie quedaba flotando a media pantalla.
+        function syncAppChrome() {
+            const root = document.documentElement;
+            const bar = document.querySelector('.status-bar');
+            const panel = document.getElementById('praKeypad');
+            if (!document.body.classList.contains('printing') && bar && bar.offsetHeight) {
+                root.style.setProperty('--footer-h', bar.offsetHeight + 'px');
             }
-            vv.addEventListener('resize', reposition);
-            vv.addEventListener('scroll', reposition);
-            reposition();
+            const footerH = bar && bar.offsetHeight ? bar.offsetHeight : 38;
+            const keypadH = (panel && !panel.hidden) ? panel.offsetHeight : 0;
+            root.style.setProperty('--keypad-pad', keypadH ? (Math.max(0, keypadH - footerH) + 16) + 'px' : '0px');
+        }
+
+        // Desplaza el contenedor de la app (nunca el documento) lo justo para que
+        // el campo enfocado quede visible sobre el teclado. Salto instantaneo y
+        // minimo: centrarlo con scrollIntoView obligaba a recorrer media pantalla
+        // y dejaba a la vista el fondo por debajo del contenido.
+        function revealInput(input) {
+            const scroller = document.getElementById('appScroll');
+            if (!scroller || !input) return;
+            const panel = document.getElementById('praKeypad');
+            const keypadH = (panel && !panel.hidden) ? panel.offsetHeight : 0;
+            const box = scroller.getBoundingClientRect();
+            const r = input.getBoundingClientRect();
+            const topLimit = box.top + 8;
+            const bottomLimit = Math.min(box.bottom, window.innerHeight - keypadH) - 8;
+            let delta = 0;
+            if (r.bottom > bottomLimit) delta = r.bottom - bottomLimit;
+            else if (r.top < topLimit) delta = r.top - topLimit;
+            if (delta) scroller.scrollTop += delta;
+        }
+
+        function initAppShell() {
+            const root = document.documentElement;
+            const vv = window.visualViewport;
+            const applyHeight = () => {
+                if (document.body.classList.contains('printing')) return;
+                const h = Math.round(vv ? vv.height : window.innerHeight);
+                if (h > 120) root.style.setProperty('--app-height', h + 'px');
+                syncAppChrome();
+            };
+            if (vv) {
+                vv.addEventListener('resize', applyHeight);
+                vv.addEventListener('scroll', applyHeight);
+            }
+            window.addEventListener('resize', applyHeight);
+            window.addEventListener('orientationchange', () => setTimeout(applyHeight, 200));
+            window.addEventListener('pageshow', applyHeight);
+            window.addEventListener('focus', applyHeight);
+            // Volver de un dialogo del sistema (imprimir, guardar el Excel,
+            // compartir) no siempre emite resize: recalibramos al reaparecer.
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) setTimeout(applyHeight, 60);
+            });
+            applyHeight();
         }
 
         function initPraKeypad() {
@@ -2858,25 +2936,20 @@
             document.querySelectorAll('.active-row').forEach(r => r.classList.remove('active-row'));
             praKeypadActiveInput = input;
             panel.hidden = false;
-            const view = input.closest('.view');
-            if (view) view.style.paddingBottom = (panel.offsetHeight + 16) + 'px';
+            document.body.classList.add('keypad-open');
+            syncAppChrome();
             const row = input.closest('.partial-row') || input.closest('tr');
             if (row) row.classList.add('active-row');
             updatePraKeypadBar(input);
-            // The fixed panel covers the lower part of the screen; if the focused
-            // input ended up underneath it, scroll it just above the keypad.
-            const r = input.getBoundingClientRect();
-            const limit = window.innerHeight - panel.offsetHeight - 8;
-            if (r.bottom > limit) {
-                window.scrollBy({ top: r.bottom - limit, behavior: 'smooth' });
-            }
+            revealInput(input);
         }
 
         function closePraKeypad() {
             const panel = document.getElementById('praKeypad');
             if (!panel || panel.hidden) return;
             panel.hidden = true;
-            document.querySelectorAll('.view').forEach(v => { v.style.paddingBottom = ''; });
+            document.body.classList.remove('keypad-open');
+            syncAppChrome();
             document.querySelectorAll('.active-row').forEach(r => r.classList.remove('active-row'));
             if (praKeypadActiveInput) praKeypadActiveInput.blur();
             praKeypadActiveInput = null;
@@ -4014,9 +4087,8 @@
                 const p1 = parseNum(tr.querySelector('.inp-p1').value) || 0;
                 const pw = parseNum(document.getElementById('pw').value) || 0;
                 const v60 = parseNum(tr.querySelector('.inp-60').value) || 0;
-                const v180 = parseNum(tr.querySelector('.inp-180').value) || 0;
                 const eta = parseNum(document.getElementById('eta').value) || 0;
-                const v = v60 || v180;
+                const v = v60;
                 if (pm && v) {
                     const pCorr = pm - p1 + pw;
                     const deltaV = eta * (pm + pw);
@@ -4048,27 +4120,63 @@
 
         // ==================== PRINT / PDF FIELD SHEET ====================
         let printPrevViewId = 'homeView';
+        let printRestoreCleanup = null;
 
         function printFieldSheet(returnTo) {
             const active = document.querySelector('.view.active');
             let sourceViewId = active ? active.id : 'homeView';
             if (sourceViewId === 'printView') sourceViewId = 'homeView';
             printPrevViewId = returnTo || sourceViewId;
+            closePraKeypad();
             document.getElementById('printContent').innerHTML = buildPrintContent(sourceViewId);
             document.body.classList.add('printing');
             showView('printView');
-            window.onafterprint = () => {
-                document.body.classList.remove('printing');
-                window.onafterprint = null;
-                showView(printPrevViewId);
-            };
+            armPrintRestore();
             window.print();
         }
 
-        function closePrintView() {
+        // Chrome en Android, los WebView y el dialogo "Guardar como PDF" no
+        // siempre disparan `afterprint`. Sin ese evento la app se quedaba en modo
+        // impresion con el layout a medias. Escuchamos ademas el media query de
+        // impresion y la vuelta de la pestana al primer plano.
+        function armPrintRestore() {
+            if (printRestoreCleanup) printRestoreCleanup();
+            const mql = window.matchMedia ? window.matchMedia('print') : null;
+            const onMql = (e) => { if (!e.matches) finish(); };
+            const onVisible = () => { if (!document.hidden) setTimeout(finish, 150); };
+            function finish() {
+                if (!printRestoreCleanup) return;
+                printRestoreCleanup();
+                exitPrintMode();
+            }
+            printRestoreCleanup = () => {
+                printRestoreCleanup = null;
+                window.removeEventListener('afterprint', finish);
+                document.removeEventListener('visibilitychange', onVisible);
+                if (mql) {
+                    if (mql.removeEventListener) mql.removeEventListener('change', onMql);
+                    else if (mql.removeListener) mql.removeListener(onMql);
+                }
+            };
+            window.addEventListener('afterprint', finish);
+            document.addEventListener('visibilitychange', onVisible);
+            if (mql) {
+                if (mql.addEventListener) mql.addEventListener('change', onMql);
+                else if (mql.addListener) mql.addListener(onMql);
+            }
+        }
+
+        function exitPrintMode() {
             document.body.classList.remove('printing');
-            window.onafterprint = null;
+            document.documentElement.style.removeProperty('--app-height');
+            syncAppChrome();
+            window.dispatchEvent(new Event('resize'));
             showView(printPrevViewId || 'homeView');
+        }
+
+        function closePrintView() {
+            if (printRestoreCleanup) printRestoreCleanup();
+            exitPrintMode();
         }
 
         // ==================== SIGNATURE PAD ====================
@@ -4207,27 +4315,26 @@
                     const v15 = tr.querySelector('.inp-15')?.value || '';
                     const v30 = tr.querySelector('.inp-30')?.value || '';
                     const v60 = tr.querySelector('.inp-60')?.value || '';
-                    const v180 = tr.querySelector('.inp-180')?.value || '';
-                    if (!pm && !p1 && !v15 && !v30 && !v60 && !v180) return;
-                    rowsHtml += `<tr><td class="num">${tr.querySelector('.row-num')?.textContent || ''}</td><td class="num">${escapeHtml(pm)}</td><td class="num">${escapeHtml(p1)}</td><td class="num">${escapeHtml(v15)}</td><td class="num">${escapeHtml(v30)}</td><td class="num">${escapeHtml(v60)}</td><td class="num">${escapeHtml(v180)}</td></tr>`;
+                    if (!pm && !p1 && !v15 && !v30 && !v60) return;
+                    rowsHtml += `<tr><td class="num">${tr.querySelector('.row-num')?.textContent || ''}</td><td class="num">${escapeHtml(pm)}</td><td class="num">${escapeHtml(p1)}</td><td class="num">${escapeHtml(v15)}</td><td class="num">${escapeHtml(v30)}</td><td class="num">${escapeHtml(v60)}</td></tr>`;
                 });
                 body += section(T[lang].dataTable || 'Lecturas de Campo', rowsHtml
-                    ? `<table class="print-table"><thead><tr><th>#</th><th>Pm</th><th>P1</th><th>15s</th><th>30s</th><th>60s</th><th>180s</th></tr></thead><tbody>${rowsHtml}</tbody></table>`
+                    ? `<table class="print-table"><thead><tr><th>#</th><th>Pm</th><th>P1</th><th>15s</th><th>30s</th><th>60s</th></tr></thead><tbody>${rowsHtml}</tbody></table>`
                     : '<p>Sin datos</p>');
 
                 let calcHtml = '';
                 document.querySelectorAll('#calcBody tr').forEach(tr => {
                     const cells = tr.querySelectorAll('td');
-                    if (cells.length < 6) return;
+                    if (cells.length < 5) return;
                     const vals = Array.from(cells).map(td => td.textContent.trim());
                     if (vals.slice(1).every(x => x === '' || x === '-')) return;
-                    calcHtml += `<tr><td class="num">${escapeHtml(vals[0])}</td><td class="num">${escapeHtml(vals[1])}</td><td class="num">${escapeHtml(vals[2])}</td><td class="num">${escapeHtml(vals[3])}</td><td class="num">${escapeHtml(vals[4])}</td><td class="num">${escapeHtml(vals[5])}</td></tr>`;
+                    calcHtml += `<tr><td class="num">${escapeHtml(vals[0])}</td><td class="num">${escapeHtml(vals[1])}</td><td class="num">${escapeHtml(vals[2])}</td><td class="num">${escapeHtml(vals[3])}</td><td class="num">${escapeHtml(vals[4])}</td></tr>`;
                 });
                 body += section(T[lang].showCalcs || 'Resultados Calculados', calcHtml
-                    ? `<table class="print-table"><thead><tr><th>#</th><th>P Corregido</th><th>δv</th><th>V Corregido</th><th>ΔV60-30</th><th>ΔV180-30</th></tr></thead><tbody>${calcHtml}</tbody></table>`
+                    ? `<table class="print-table"><thead><tr><th>#</th><th>P Corregido</th><th>δv</th><th>V Corregido</th><th>ΔV60-30</th></tr></thead><tbody>${calcHtml}</tbody></table>`
                     : '<p>Sin cálculos</p>');
 
-                const hasChartData = Array.from(document.querySelectorAll('#tableBody tr')).some(tr => (parseNum(tr.querySelector('.inp-pm')?.value) || 0) && ((parseNum(tr.querySelector('.inp-60')?.value) || 0) || (parseNum(tr.querySelector('.inp-180')?.value) || 0)));
+                const hasChartData = Array.from(document.querySelectorAll('#tableBody tr')).some(tr => (parseNum(tr.querySelector('.inp-pm')?.value) || 0) && ((parseNum(tr.querySelector('.inp-60')?.value) || 0)));
                 if (hasChartData) {
                     drawChart();
                     body += `<div class="print-chart"><img src="${document.getElementById('pvChart').toDataURL()}" alt="P-V"></div>`;
