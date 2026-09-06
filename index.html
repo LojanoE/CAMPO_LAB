@@ -497,16 +497,20 @@
             border: 1.5px solid var(--cement);
             box-shadow: var(--shadow-hard-sm);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            align-items: stretch;
             gap: 10px;
             transition: all 0.15s;
         }
         .test-item:active { transform: translate(2px, 2px); box-shadow: none; }
-        .test-info { flex: 1; min-width: 0; }
+        .test-info { min-width: 0; }
         .test-name { font-weight: 800; font-size: 0.95rem; color: var(--ink); }
         .test-meta { font-size: 0.78rem; color: var(--cement); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
-        .test-actions { display: flex; gap: 8px; }
+        .test-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+        .test-actions .btn-small { padding: 8px 4px; font-size: 0.72rem; min-height: 40px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        @media (max-width: 340px) {
+            .test-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
 
         .empty-state {
             text-align: center;
@@ -1530,9 +1534,9 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const APP_VERSION = '1.1.22';
+        const APP_VERSION = '1.1.23';
 
-        const SW_VERSION = 'campolab-v1.1.22';
+        const SW_VERSION = 'campolab-v1.1.23';
         // Water density table from Excel LISTAS (15.0 to 30.9 °C, 0.1 °C step)
         const WATER_DENSITY_TABLE = {};
         const waterDensityBase = {
@@ -3810,8 +3814,8 @@
                     <div class="test-meta">${meta}</div>
                 </div>
                 <div class="test-actions">
-                    <button class="btn btn-outline btn-small" onclick="exportTestFromHome('${t.type}','${t.id}','excel')">&#128229; ${T[lang].btnExportExcel}</button>
-                    <button class="btn btn-outline btn-small" onclick="exportTestFromHome('${t.type}','${t.id}','pdf')">&#128196; ${T[lang].btnExportPdf}</button>
+                    <button class="btn btn-outline btn-small" onclick="exportTestFromHome('${t.type}','${t.id}','excel')">&#128229; Excel</button>
+                    <button class="btn btn-outline btn-small" onclick="exportTestFromHome('${t.type}','${t.id}','pdf')">&#128196; PDF</button>
                     <button class="btn btn-primary btn-small" onclick="editTest('${t.type}','${t.id}')">${T[lang].btnEdit}</button>
                     <button class="btn btn-danger btn-small" onclick="deleteTest('${t.type}','${t.id}')">${T[lang].btnDelete}</button>
                 </div>

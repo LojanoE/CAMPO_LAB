@@ -11,7 +11,7 @@
 
 There is no build system, package manager, backend, or CI. Everything is plain HTML/CSS/JavaScript. The app is meant to run offline after the first load via a Service Worker.
 
-Current version: `1.1.22` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
+Current version: `1.1.23` (see `APP_VERSION` and `SW_VERSION` in `index.html`, and `CACHE_NAME` in `sw.js`).
 
 ## Repository layout
 
@@ -185,7 +185,7 @@ Experimental module (own home card and `balanzaView`) that reads the Jontex floo
 - Saving:
   - `Ctrl/Cmd + S` triggers `saveCurrent()`.
   - Autosave runs every 30 seconds while `changed === true`.
-  - The home screen groups saved tests from all three modules by date (`renderTestsList()`), newest date first, each date as a collapsible section (`.date-group`) with per-module counts. Only the most recent date is expanded by default; a user's explicit expand/collapse choices persist in `testsDateState` across reloads.
+  - The home screen groups saved tests from all three modules by date (`renderTestsList()`), newest date first, each date as a collapsible section (`.date-group`) with per-module counts. Only the most recent date is expanded by default; a user's explicit expand/collapse choices persist in `testsDateState` across reloads. Each test item is a vertical card: info on top and a 4-column button grid below (Excel, PDF, Editar, Eliminar — `.test-actions`, drops to 2 columns under 340 px) so every action fits on a phone screen.
 
 ## Service Worker and offline behavior
 
